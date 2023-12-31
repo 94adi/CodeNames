@@ -1,8 +1,12 @@
 using CodeNames;
 using CodeNames.CodeNames.Core.Services.GridGenerator;
 using CodeNames.Data;
+using CodeNames.Models;
+using CodeNames.Repository;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using NuGet.Protocol.Core.Types;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,14 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-/*TO DO: Use Options pattern*/
-int col;
-int row;
-var colConversion = Int32.TryParse(builder.Configuration.GetSection("GameVariables")["col"], out col);
-col = colConversion ? col : 5;
 
-var rowConversion = Int32.TryParse(builder.Configuration.GetSection("GameVariables")["col"], out row);
-row = rowConversion ? row : 5;
+builder.Services.Configure<GameParametersOptions>(builder.Configuration.GetSection("GameVariables"));
 
 
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(dbConnectionString));
@@ -26,7 +24,8 @@ builder.Services.AddDefaultIdentity<IdentityUser>(
     opt => opt.SignIn.RequireConfirmedAccount = true
     ).AddEntityFrameworkStores<AppDbContext>();
 
-builder.Services.AddScoped<IGridGenerator>(o => new GridGenerator(col,row));
+builder.Services.AddScoped<IGridGenerator, GridGenerator>();
+builder.Services.AddScoped<IRepository<GameRoom>, Repository<GameRoom>>();
 
 var app = builder.Build();
 

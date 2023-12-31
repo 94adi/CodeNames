@@ -1,0 +1,36 @@
+﻿@model CodeNames.Models.ViewModels.GameRoomIndexVM
+
+<div class="row p-3 mb-3 mt-3 bg-dark">
+    <div class="col-6">
+        <h2 class="font-weight-light text-white">@Model.PageTitle</h2>
+    </div>
+    <div class="col-6 text-right">
+        <a class="btn btn-outline-light text-white" id="create-new-item-link" asp-action="AddEditGameRoom"><i class="fas fa-plus"></i> &nbsp; Create New Game Room</a>
+    </div>
+</div>
+
+<div class="p-4 border rounded">
+    @if (Model.GameRooms.Count() > 0)
+    {
+        <table class="table table-striped border">
+            <tr class="table-secondary">
+                <th>Game Room Name</th>
+                <th></th>
+            </tr>
+            @foreach (var item in Model.GameRooms)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(m => item.Name)
+                    </td>
+                </tr>
+            }
+        </table>
+
+        <br />
+    }
+    else
+    {
+        <p>No Game Rooms exists</p>
+    }
+</div>

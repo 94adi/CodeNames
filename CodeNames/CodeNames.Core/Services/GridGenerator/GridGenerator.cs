@@ -1,31 +1,32 @@
 ﻿using CodeNames.Models;
 using CodeNames.Repository;
+using Microsoft.Extensions.Options;
 
 namespace CodeNames.CodeNames.Core.Services.GridGenerator
 {
     public class GridGenerator : IGridGenerator
     {
-        private int _cols;
-        private int _rows;
-        private int _gridSize;
+        private readonly GameParametersOptions _gameParametersOptions;
+        private readonly int _gridSize;
         private List<string> _words;
 
-        public GridGenerator(int cols, int rows)
+        public GridGenerator(IOptions<GameParametersOptions> gameParametersOptions)
         {
-            _cols = cols;
-            _rows = rows;
-            _gridSize = _cols * _rows;
+            _gameParametersOptions = gameParametersOptions.Value;
+            _gridSize = _gameParametersOptions.NumberOfRows * _gameParametersOptions.NumberOfColumns;
             _words = WordsListSingleton.Instance.Words;
         }
 
-        public Grid Generate(int size)
+        public Grid Generate()
         {
             var randomWords = PickRandomWords();
             var generatedBlocks = GenerateBlocks(randomWords);
 
             return new Grid
             {
-                Blocks = generatedBlocks
+                Blocks = generatedBlocks,
+                Rows = _gameParametersOptions.NumberOfRows,
+                Columns = _gameParametersOptions.NumberOfColumns
             };
             
         }
@@ -54,26 +55,26 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
 
             var randomSelector = new Random();
 
-            GenerateArray(_cols, out randomColumns);
-            GenerateArray(_rows, out randomColumns);
+            GenerateArray(_gameParametersOptions.NumberOfColumns, out randomColumns);
+            GenerateArray(_gameParametersOptions.NumberOfRows, out randomRows);
 
-            for(int i = 0; i < _rows; i++)
+            for(int i = 0; i < _gameParametersOptions.NumberOfRows; i++)
             {
-                for(int j = 0; j <  _cols; j++)
+                for(int j = 0; j < _gameParametersOptions.NumberOfColumns; j++)
                 {
                     var currentBlock = new Block
                     {
                         Row = randomRows[i],
                         Column = randomColumns[j],
-                        Content = _words[randomSelector.Next(_words.Count)]
-                        //To add color
+                        Content = _words[randomSelector.Next(_words.Count)],
+                        Color = GenerateColor()
                     };
 
                     blockCollection.Add(currentBlock);
                 }
             }
 
-            return null;
+            return blockCollection;
         }
 
         private void GenerateArray(int size, out List<int> generatedArray)
@@ -87,25 +88,40 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
             {
                 do
                 {
-                    var column = randomGenerator.Next(size);
-                    if (generatedArray.Contains(column))
+                    var randomValue = randomGenerator.Next(size);
+                    if (generatedArray.Contains(randomValue))
                     {
                         shouldRegenerate = true;
                     }
                     else
                     {
                         shouldRegenerate = false;
-                        generatedArray.Add(column);
+                        generatedArray.Add(randomValue);
                     }
                 } while (shouldRegenerate);
             }
         }
 
-        //rules
-        //red team: 8 cards
-        //blue team: 9 cards
-        //1 black card
-        //rest of cards are neutral
-   
+        private Color GenerateColor()
+        {
+            if(_gameParametersOptions.RedTeamCards > 0)
+            {
+                _gameParametersOptions.RedTeamCards--;
+                return Color.Red;
+            }
+
+            if(_gameParametersOptions.BlueTeamCards > 0)
+            {
+                _gameParametersOptions.BlueTeamCards--;
+                return Color.Blue;
+            }
+            if(_gameParametersOptions.BlackCards > 0)
+            {
+                _gameParametersOptions.BlackCards--;
+                return Color.Black;
+            }
+
+            return Color.Neutral;
+        }
     }
 }

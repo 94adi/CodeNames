@@ -11,6 +11,7 @@ namespace CodeNames.Models
         public GameRoom GameRoom { get; set; }
         public GameState GameState { get; set; } = GameState.Init;
         public Grid Grid { get; set; }
+        public List<List<Block>> GridMatrix { get; set; }
         public string Clue { get; set; }
         public int NumberOfCardsTargeted { get; set; }
 

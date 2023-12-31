@@ -2,6 +2,7 @@ using CodeNames.CodeNames.Core.Services.GridGenerator;
 using CodeNames.Models;
 using CodeNames.Repository;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Diagnostics;
 
 namespace CodeNames.Controllers
