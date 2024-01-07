@@ -5,19 +5,16 @@
     @for(int i = 0; i < Model.Grid.Rows; i++)
     {
         <div class="row border p-1 mt-3">
-            <div class="col-2">
-                <div class="card text-bg-warning mb-3" style="max-width: 18rem; background-color:#EDB526">
-                    <div class="card-body">
-                        <h5 class="card-title">Warning card title</h5>
-                    </div>
-                </div>
-            </div>
             @for(int j = 0; j < Model.Grid.Columns; j++)
             {
-                int rowIndex = i == 0 ? 1 : i + 1;
-                string color = @Model.Grid.Blocks[rowIndex * j].Color.ToString();
+                int rowIndex = i * Model.Grid.Columns;
+                string color = $"background-color:{ViewBag.ColorDictionary[@Model.Grid.Blocks[rowIndex + j].Color]}";
                 <div class="col-2">
-                    <button class="btn" style="background-color:@color" id="">@Model.Grid.Blocks[rowIndex * j].Content</button>
+                    <div class="card mb-3" style="max-width: 18rem; @color">
+                        <div class="card-body">
+                            <h5 class="card-title">@Model.Grid.Blocks[rowIndex + j].Content</h5>
+                        </div>
+                    </div>
                 </div>
             }
         </div>

@@ -5,6 +5,7 @@
         Red,
         Blue, 
         Black, 
-        Neutral 
+        Neutral,
+        None
     }
 }

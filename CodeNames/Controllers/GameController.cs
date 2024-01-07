@@ -29,6 +29,8 @@ namespace CodeNames.Controllers
 
             PopulateLiveSessionModel(model);
 
+            ViewBag.ColorDictionary = StaticDetails.ColorToHexDict;
+
             return View(model);
         }
 

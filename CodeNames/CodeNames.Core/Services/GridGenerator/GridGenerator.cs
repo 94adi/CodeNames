@@ -1,5 +1,6 @@
 ﻿using CodeNames.Models;
 using CodeNames.Repository;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 
 namespace CodeNames.CodeNames.Core.Services.GridGenerator
@@ -9,18 +10,22 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
         private readonly GameParametersOptions _gameParametersOptions;
         private readonly int _gridSize;
         private List<string> _words;
+        private IDictionary<Color, int> _colorRequirements;
 
         public GridGenerator(IOptions<GameParametersOptions> gameParametersOptions)
         {
             _gameParametersOptions = gameParametersOptions.Value;
             _gridSize = _gameParametersOptions.NumberOfRows * _gameParametersOptions.NumberOfColumns;
             _words = WordsListSingleton.Instance.Words;
+
+            _colorRequirements = new Dictionary<Color, int>();
+            PopulateColorRequirements();
         }
 
         public Grid Generate()
         {
             var randomWords = PickRandomWords();
-            var generatedBlocks = GenerateBlocks(randomWords);
+            var generatedBlocks = GenerateBlocks(randomWords).ToList();
 
             return new Grid
             {
@@ -46,12 +51,12 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
             return result;
         }
 
-        private IList<Block> GenerateBlocks(IList<string> words)
+        private HashSet<Block> GenerateBlocks(IList<string> words)
         {
-            var randomColumns = new List<int>();
-            var randomRows = new List<int>();
+            var randomColumns = new HashSet<int>();
+            var randomRows = new HashSet<int>();
 
-            var blockCollection = new List<Block>();
+            var blockCollection = new HashSet<Block>();
 
             var randomSelector = new Random();
 
@@ -62,12 +67,14 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
             {
                 for(int j = 0; j < _gameParametersOptions.NumberOfColumns; j++)
                 {
+                    Color cardColor = Color.None;
+                    GenerateColor(ref cardColor);
                     var currentBlock = new Block
                     {
-                        Row = randomRows[i],
-                        Column = randomColumns[j],
+                        Row = randomRows.ElementAt(i),
+                        Column = randomColumns.ElementAt(j),
                         Content = _words[randomSelector.Next(_words.Count)],
-                        Color = GenerateColor()
+                        Color = cardColor
                     };
 
                     blockCollection.Add(currentBlock);
@@ -77,11 +84,11 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
             return blockCollection;
         }
 
-        private void GenerateArray(int size, out List<int> generatedArray)
+        private void GenerateArray(int size, out HashSet<int> generatedArray)
         {
             Random randomGenerator = new Random();
             bool shouldRegenerate = false;
-
+            
             generatedArray = new ();
 
             for (int i = 0; i < size; i++)
@@ -102,26 +109,60 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
             }
         }
 
-        private Color GenerateColor()
+        private void GenerateColor(ref Color cardColor)
         {
-            if(_gameParametersOptions.RedTeamCards > 0)
-            {
-                _gameParametersOptions.RedTeamCards--;
-                return Color.Red;
-            }
+            //TO DO: Improve method
+            Random randGen = new Random();
+            var colorReturned = false;
 
-            if(_gameParametersOptions.BlueTeamCards > 0)
-            {
-                _gameParametersOptions.BlueTeamCards--;
-                return Color.Blue;
-            }
-            if(_gameParametersOptions.BlackCards > 0)
-            {
-                _gameParametersOptions.BlackCards--;
-                return Color.Black;
-            }
+            if(_colorRequirements[Color.Red] == 0 &&
+               _colorRequirements[Color.Blue] == 0 &&
+               _colorRequirements[Color.Neutral] == 0 &&
+               _colorRequirements[Color.Black] == 0)
+               {               
+                    throw new Exception("Can't generate color because there's no quota left");
+               }
 
-            return Color.Neutral;
+            do
+            {
+                var randomResult = randGen.Next(4);
+                if ((randomResult == 0) && (_colorRequirements[Color.Red] > 0))
+                {
+                    _colorRequirements[Color.Red]--;
+                    cardColor = Color.Red;
+                    colorReturned = true;
+                }
+
+                else if ((randomResult == 1) && (_colorRequirements[Color.Blue] > 0))
+                {
+                    _colorRequirements[Color.Blue]--;
+                    cardColor = Color.Blue;
+                    colorReturned = true;
+                }
+                else if ((randomResult == 2) && (_colorRequirements[Color.Neutral] > 0))
+                {
+                    _colorRequirements[Color.Neutral]--;
+                    cardColor = Color.Neutral;
+                    colorReturned = true;
+                }
+                else if (_colorRequirements[Color.Black] > 0)
+                {
+                    _colorRequirements[Color.Black]--;
+                    cardColor = Color.Black;
+                    colorReturned = true;
+                }
+            } while (!colorReturned);         
+        }
+
+        private void PopulateColorRequirements()
+        {
+            _colorRequirements[Color.Red] = _gameParametersOptions.RedTeamCards;
+            _colorRequirements[Color.Blue] = _gameParametersOptions.BlueTeamCards;
+            _colorRequirements[Color.Black] = _gameParametersOptions.BlackCards;
+            _colorRequirements[Color.Neutral] = _gridSize - 
+                (_gameParametersOptions.RedTeamCards + 
+                _gameParametersOptions.BlueTeamCards + 
+                _gameParametersOptions.BlackCards);
         }
     }
 }
