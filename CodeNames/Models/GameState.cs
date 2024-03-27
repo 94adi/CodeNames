@@ -6,6 +6,6 @@
         Start, //blue will start first
         Red,
         Blue,
-        Over
+        Finished
     }
 }

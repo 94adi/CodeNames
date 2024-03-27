@@ -1,0 +1,33 @@
+﻿@model CodeNames.Models.LiveSession;
+
+<h1 class="display-4">Test Room</h1>
+
+<div class="game-container">
+    <div class="game-box left-box">
+        <h2>Left Box</h2>
+        <p>This box occupies 10% width of the page.</p>
+    </div>
+    <div class="game-box middle-box">
+        @for (int i = 0; i < Model.Grid.Rows; i++)
+        {
+            <div class="row border p-1 mt-3">
+                @for (int j = 0; j < Model.Grid.Columns; j++)
+                {
+                    int rowIndex = i * Model.Grid.Columns;
+                    string color = $"background-color:{ViewBag.ColorDictionary[@Model.Grid.Blocks[rowIndex + j].Color]}";
+                    <div class="col-2">
+                        <div class="card mb-3" style="max-width: 18rem; @color">
+                            <div class="card-body">
+                                <h5 class="card-title">@Model.Grid.Blocks[rowIndex + j].Content</h5>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+    <div class="game-box right-box">
+        <h2>Right Box</h2>
+        <p>This box occupies 10% width of the page.</p>
+    </div>
+</div>

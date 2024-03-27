@@ -5,12 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CodeNames.Controllers
 {
+    //this should be for admin only
     public class GameRoomController : Controller
     {
 
-        private readonly IRepository<GameRoom> _gameRoomRepository;
+        private readonly IGameRoomRepository _gameRoomRepository;
 
-        public GameRoomController(IRepository<GameRoom> gameRoomRepository)
+        public GameRoomController(IGameRoomRepository gameRoomRepository)
         {
             _gameRoomRepository = gameRoomRepository;
         }
@@ -56,6 +57,10 @@ namespace CodeNames.Controllers
             {
                 try
                 {
+                    if(gameRoom.InvitationCode == Guid.Empty)
+                    {
+                        gameRoom.InvitationCode = Guid.NewGuid();
+                    }
                     _gameRoomRepository.Add(gameRoom);
                     _gameRoomRepository.Save();
                 }

@@ -1,4 +1,5 @@
 using CodeNames;
+using CodeNames.CodeNames.Core.Services.GameRoomService;
 using CodeNames.CodeNames.Core.Services.GridGenerator;
 using CodeNames.Data;
 using CodeNames.Models;
@@ -25,8 +26,10 @@ builder.Services.AddDefaultIdentity<IdentityUser>(
     ).AddEntityFrameworkStores<AppDbContext>();
 
 builder.Services.AddScoped<IGridGenerator, GridGenerator>();
-builder.Services.AddScoped<IRepository<GameRoom>, Repository<GameRoom>>();
+builder.Services.AddScoped<IGameRoomRepository, GameRoomRepository>();
+builder.Services.AddScoped<IGameRoomService, GameRoomService>();
 
+builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -46,7 +49,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
+    name: "MyArea",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+
+app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
 app.MapRazorPages();
 app.Run();

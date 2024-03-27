@@ -72,7 +72,7 @@ namespace CodeNames.Repository
             return query.ToList();
         }
 
-        public T GetFirstOrDefault(Expression<Func<T, bool>> filter, string includeProperties)
+        public T GetFirstOrDefault(Expression<Func<T, bool>> filter, string includeProperties = null)
         {
             IQueryable<T> query = dbSet;
 

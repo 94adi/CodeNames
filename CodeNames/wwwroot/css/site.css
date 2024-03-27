@@ -20,3 +20,35 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+.game-container {
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+}
+
+.left-box {
+    width: 10%;
+    background-color: #333;
+    color: #fff;
+}
+
+.middle-box {
+    flex: 1;
+    background-color: #f0f0f0;
+}
+
+.right-box {
+    width: 10%;
+    background-color: #333;
+    color: #fff;
+}
+
+.game-box {
+    margin: 20px;
+    padding: 20px;
+}
+
+.game-frame{
+    max-width: 2000px;
+}

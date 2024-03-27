@@ -8,5 +8,6 @@ namespace CodeNames.Models
         public int Id { get; set; }
         public string Name { get; set; }
         public int? MaxNoPlayers { get; set; }
+        public Guid InvitationCode { get; set; }
     }
 }
