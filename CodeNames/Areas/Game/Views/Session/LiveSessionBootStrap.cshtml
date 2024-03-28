@@ -1,13 +1,13 @@
 ﻿@model CodeNames.Models.LiveSession;
 
-<h1 class="display-4">Test Room</h1>
+<h1 class="display-4 text-center">Test Room</h1>
 
 <div class="container game-frame">
     <div class="row justify-content-start">
-        <div style="background-color:red"class="col-sm-2 left-panel">
+        <div style="background-color:red"class="col-lg-2 left-panel">
             Left Bar 
         </div>
-        <div style="background-color:green" class="col-sm-8 game-panel">
+        <div style="background-color:green" class="col-lg-8 game-panel">
             @for (int i = 0; i < Model.Grid.Rows; i++)
             {
                 <div class="row justify-content-between p-1 mt-3">
@@ -26,9 +26,29 @@
                     }
                 </div>
             }
+
+            <hr class="hr hr-blurry mb-5 mt-2" />
+
+            <form class="m-3">
+                <div class="row justify-content-end">
+                    <div class="col-2">
+                        <input type="text" class="form-control" placeholder="Enter clue">
+                    </div>
+                    <div class="col-1">
+                        <input type="number" class="form-control" min="1" />
+                    </div>
+                    <div class="col-2">
+                        <button class="btn btn-primary" type="button">Submit</button>
+                    </div>
+                </div>
+            </form>
+
         </div>
-        <div style="background-color:blue" class="col-sm-2 right-panel">
+        <div style="background-color:blue" class="col-lg-2 right-panel">
             Right Bar
         </div>
+    </div>
+    <div class="row">
+
     </div>
 </div>

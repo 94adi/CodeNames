@@ -93,8 +93,8 @@ namespace CodeNames.Areas.Game.Controllers
         {
 
             model.GameState = GameState.Init;
-            model.RedTeam = new Dictionary<Team, IdentityUser>();
-            model.BlueTeam = new Dictionary<Team, IdentityUser>();
+            model.Teams.Add(new RedTeam());
+            model.Teams.Add(new BlueTeam());
             model.Grid = _gridGeneratorService.Generate();
         }
 

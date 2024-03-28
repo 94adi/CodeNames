@@ -9,5 +9,6 @@ namespace CodeNames.Models
         public string Name { get; set; }
         public int? MaxNoPlayers { get; set; }
         public Guid InvitationCode { get; set; }
+        bool IsActive {  get; set; }
     }
 }
