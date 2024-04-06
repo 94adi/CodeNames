@@ -2,6 +2,7 @@ using CodeNames;
 using CodeNames.CodeNames.Core.Services.GameRoomService;
 using CodeNames.CodeNames.Core.Services.GridGenerator;
 using CodeNames.Data;
+using CodeNames.Hubs;
 using CodeNames.Models;
 using CodeNames.Repository;
 using Microsoft.AspNetCore.Identity;
@@ -25,11 +26,15 @@ builder.Services.AddDefaultIdentity<IdentityUser>(
     opt => opt.SignIn.RequireConfirmedAccount = true
     ).AddEntityFrameworkStores<AppDbContext>();
 
+builder.Services.AddSignalR();
+    //.AddAzureSignalR(connectionAzureSignalR);
+
 builder.Services.AddScoped<IGridGenerator, GridGenerator>();
 builder.Services.AddScoped<IGameRoomRepository, GameRoomRepository>();
 builder.Services.AddScoped<IGameRoomService, GameRoomService>();
 
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -57,4 +62,9 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.MapRazorPages();
+
+app.MapHub<TestHub>("/hubs/testHub");
+app.MapHub<StateMachineHub>("/hubs/stateMachineHub");
+//app.MapHub<LiveSessionHub>("/hubs/liveSession");
+
 app.Run();

@@ -1,6 +1,8 @@
 ﻿using CodeNames.CodeNames.Core.Services.GameRoomService;
 using CodeNames.CodeNames.Core.Services.GridGenerator;
+using CodeNames.Hubs;
 using CodeNames.Models;
+using CodeNames.Models.ViewModels;
 using CodeNames.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -15,13 +17,16 @@ namespace CodeNames.Areas.Game.Controllers
     {
         private readonly IGridGenerator _gridGeneratorService;
         private readonly IGameRoomService _gameRoomService;
-        //private readonly IHubContext<> _gameHubContext;
+        private readonly IHubContext<StateMachineHub> _stateMachineHubContext;
+        private LiveSession _liveSessionModel;
 
         public SessionController(IGridGenerator gridGeneratorService,
-            IGameRoomService gameRoomService)
+            IGameRoomService gameRoomService,
+            IHubContext<StateMachineHub> stateMachineHubContext)
         {
             _gridGeneratorService = gridGeneratorService;
             _gameRoomService = gameRoomService;
+            _stateMachineHubContext = stateMachineHubContext;
         }
 
         public IActionResult Index()
@@ -56,31 +61,20 @@ namespace CodeNames.Areas.Game.Controllers
 
             PopulateLiveSessionModel(model);
 
-            ViewBag.ColorDictionary = StaticDetails.ColorToHexDict;
-
-            return View(model);
-        }
-
-        public IActionResult LiveSessionTest()
-        {
-            LiveSession model = new LiveSession();
-
-            PopulateLiveSessionModel(model);
+            GameSessionDictioary.AddSession(model);
 
             ViewBag.ColorDictionary = StaticDetails.ColorToHexDict;
 
-            return View(model);
-        }
+            LiveSessionVM viewModel = new LiveSessionVM();
 
-        public IActionResult LiveSessionBootStrap()
-        {
-            LiveSession model = new LiveSession();
+            viewModel.LiveSession = model;
 
-            PopulateLiveSessionModel(model);
+            foreach(var team in model.Teams)
+            {
+                viewModel.Teams.Add(team.Color, team);
+            }
 
-            ViewBag.ColorDictionary = StaticDetails.ColorToHexDict;
-
-            return View(model);
+            return View(viewModel);
         }
 
         public IActionResult AccessForbidden(string gameRoom)
@@ -92,7 +86,7 @@ namespace CodeNames.Areas.Game.Controllers
         private void PopulateLiveSessionModel(LiveSession model)
         {
 
-            model.GameState = GameState.Init;
+            model.SessionState = SessionState.Pending;
             model.Teams.Add(new RedTeam());
             model.Teams.Add(new BlueTeam());
             model.Grid = _gridGeneratorService.Generate();

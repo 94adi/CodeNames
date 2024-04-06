@@ -1,25 +1,80 @@
-﻿@model CodeNames.Models.LiveSession;
+﻿@model CodeNames.Models.ViewModels.LiveSessionVM;
 
-<h1 class="display-4">@Model.GameRoom.Name</h1>
+<h1 class="display-4 text-center">Test Room</h1>
 
-<div class="container text-center">
+<input type="hidden" asp-for="@Model.LiveSession.SessionId" />
 
-    @for (int i = 0; i < Model.Grid.Rows; i++)
-    {
-        <div class="row border p-1 mt-3">
-            @for (int j = 0; j < Model.Grid.Columns; j++)
+<div class="container game-frame">
+    <div class="row justify-content-start">
+        <div class="col-lg-2 left-panel bg-secondary bg-gradient">
+            <h1 class="text-white">Red Team</h1>
+            <ul class="list-group red-team-ul bg-info bg-gradient">
+                <li style="background-color:#ff8080" class="list-group-item text-center">TEst 1</li>
+            </ul>
+            <div class="row mt-5">
+                <div class="col-12 d-flex justify-content-center">
+                    <a href="#" class="btn btn-primary" id="red-team-button">Join Red Team</a>
+                </div>
+            </div>
+        </div>
+        <div style="background-color:green" class="col-lg-8 game-panel">
+            @for (int i = 0; i < Model.LiveSession.Grid.Rows; i++)
             {
-                int rowIndex = i * Model.Grid.Columns;
-                string color = $"background-color:{ViewBag.ColorDictionary[@Model.Grid.Blocks[rowIndex + j].Color]}";
-                <div class="col-2">
-                    <div class="card mb-3" style="max-width: 18rem; @color">
-                        <div class="card-body">
-                            <h5 class="card-title">@Model.Grid.Blocks[rowIndex + j].Content</h5>
+                <div class="row justify-content-between p-1 mt-3">
+                    @for (int j = 0; j < Model.LiveSession.Grid.Columns; j++)
+                    {
+                        int rowIndex = i * Model.LiveSession.Grid.Columns;
+                        var blockColor = ViewBag.ColorDictionary[Model.LiveSession.Grid.Blocks[rowIndex + j].Color];
+                        var blockColorEnum = Model.LiveSession.Grid.Blocks[rowIndex + j].Color;
+                        string color = $"background-color:{blockColor}";
+                        string textColor = (blockColorEnum == Color.Black) ? "color:white" : "color:black";
+                        <div class="col-2">
+                            <div class="card mb-3" style="max-width: 18rem; @color">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title" style="@textColor">@Model.LiveSession.Grid.Blocks[rowIndex + j].Content</h5>
+                                    <a href="#" class="btn btn-primary">Guess</a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    }
                 </div>
             }
-        </div>
-    }
 
+            <hr class="hr hr-blurry mb-5 mt-2" />
+
+            <form class="m-3">
+                <div class="row justify-content-end">
+                    <div class="col-2">
+                        <input type="text" class="form-control" placeholder="Enter clue">
+                    </div>
+                    <div class="col-1">
+                        <input type="number" class="form-control" min="1" />
+                    </div>
+                    <div class="col-2">
+                        <button class="btn btn-primary" type="button">Submit</button>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+        <div class="col-lg-2 right-panel bg-secondary bg-gradient">
+            <h1 class="text-white">Blue Team</h1>
+                <ul class="list-group blue-team-ul bg-info bg-gradient">
+                    <li style="background-color:#72a5f7" class="list-group-item text-center">TEst 1</li>
+                    <li style="background-color:#72a5f7"  class="list-group-item text-center">TEst 2</li>
+                    <li style="background-color:#72a5f7"  class="list-group-item text-center">TEst 3</li>
+                </ul>
+            <div class="row mt-5">
+                <div class="col-12 d-flex justify-content-center">
+                    <a href="#" class="btn btn-primary" id="blue-team-button">Join Blue Team</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+    </div>
 </div>
+
+
+<script src="~/js/signalr.min.js"></script>
+<script src="~/js/stateMachineHub.js"></script>
