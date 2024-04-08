@@ -1,4 +1,5 @@
-﻿using CodeNames.Models;
+﻿using CodeNames.Core.Services.UserService;
+using CodeNames.Models;
 using Microsoft.AspNetCore.SignalR;
 using NuGet.Protocol;
 using System.Security.Claims;
@@ -10,8 +11,16 @@ namespace CodeNames.Hubs
     public class StateMachineHub : Hub
     {
         private LiveSession _currentSession;
-        private static IDictionary<string, string> _queuedPlayers = new Dictionary<string, string>();
-        public async void ReceiveSessionId(string sessionId)
+
+        private static IList<SessionUser> _queuedPlayers = new List<SessionUser>();
+
+        private readonly IUserService _userService;
+
+        public StateMachineHub(IUserService userService)
+        {
+            _userService = userService;
+        }
+        public async Task ReceiveSessionId(string sessionId)
         {
             var sessionGuidId = new Guid(sessionId);
 
@@ -30,9 +39,9 @@ namespace CodeNames.Hubs
 
             if (_queuedPlayers != null && _queuedPlayers.Count > 0)
             {
-                foreach (KeyValuePair<string, string> item in _queuedPlayers)
+                foreach (var item in _queuedPlayers)
                 {
-                    if (!_currentSession.IdlePlayers.ContainsKey(item.Key))
+                    if (_currentSession.IdlePlayers.Where(u => u.Id.Equals(item.Id)).FirstOrDefault() == null)
                     {
                         _currentSession.IdlePlayers.Add(item);
                     }
@@ -42,27 +51,34 @@ namespace CodeNames.Hubs
             }
 
             _currentSession.SessionState = SessionState.Start;
-            await Clients.All.SendAsync("GameSessionStart", _currentSession.IdlePlayers.ToJson());
+            var idlePlayersJson = _currentSession.IdlePlayers.ToJson();
+            await Clients.All.SendAsync("GameSessionStart", idlePlayersJson);
         }
 
         public override Task OnConnectedAsync()
         {
             var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if(userId == null) 
+            if (userId == null)
                 return base.OnConnectedAsync();
 
+            var userName = _userService.GetUserName(userId);
+
+            var newUser = new SessionUser { Id = userId, Name = userName, ConnectionId = Context.ConnectionId };
+
             if (_currentSession == null)
-            {
-                _queuedPlayers.Add(userId, Context.ConnectionId);
+            {       
+                _queuedPlayers.Add(newUser);
                 return base.OnConnectedAsync();
             }
 
             if(_queuedPlayers != null && _queuedPlayers.Count > 0) 
             {
-                foreach(KeyValuePair<string, string> item in _queuedPlayers)
+                foreach(var item in _queuedPlayers)
                 {
-                    if(!_currentSession.IdlePlayers.ContainsKey(item.Key))
+                    var isUserRegistered = _currentSession.IdlePlayers.Where(u => u.Id.Equals(item.Id)).FirstOrDefault() == null ? false : true;
+
+                    if (!isUserRegistered)
                     {
                         _currentSession.IdlePlayers.Add(item);
                     }
@@ -71,13 +87,13 @@ namespace CodeNames.Hubs
 
             }
 
-            if (!_currentSession.IdlePlayers.ContainsKey(userId))
+            if (_currentSession.IdlePlayers.Where(u => u.Id.Equals(userId)).FirstOrDefault() == null)
             {
-                _currentSession.IdlePlayers.Add(new KeyValuePair<string, string>(userId, Context.ConnectionId));
+                _currentSession.IdlePlayers.Add(newUser);
             }
             else
             {
-                _currentSession.IdlePlayers[userId] = Context.ConnectionId;
+                newUser.ConnectionId = Context.ConnectionId;
             }
 
             return base.OnConnectedAsync();
@@ -91,30 +107,39 @@ namespace CodeNames.Hubs
             var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if(userId == null)
-                return base.OnDisconnectedAsync(exception);
-
-            if(_queuedPlayers.Count > 0 && _queuedPlayers.ContainsKey(userId))
             {
-                _queuedPlayers.Remove(userId);
+                return base.OnDisconnectedAsync(exception);
+            }           
+
+            var queuedUser = _queuedPlayers.Where(u => u.Id == userId).FirstOrDefault();
+
+            if ((_queuedPlayers.Count > 0) && (queuedUser != null))
+            {
+                _queuedPlayers.Remove(queuedUser);
             }
 
             if(_currentSession != null)
             {
-                if (_currentSession.IdlePlayers.ContainsKey(userId))
+                var idlePlayer = _currentSession.IdlePlayers.Where(u => u.Id == userId).FirstOrDefault();
+                var activePlayer = _currentSession.PlayersList.Where(u => u.Id == userId).FirstOrDefault();
+
+                if (idlePlayer != null)
                 {
-                    _currentSession.IdlePlayers.Remove(userId);
+                    _currentSession.IdlePlayers.Remove(idlePlayer);
                 }
 
-                if (_currentSession.PlayersList.ContainsKey(userId))
+                if (activePlayer != null)
                 {
-                    _currentSession.PlayersList.Remove(userId);
+                    _currentSession.PlayersList.Remove(activePlayer);
                 }
 
                 foreach (var team in _currentSession.Teams)
                 {
-                    if (team.Players.ContainsKey(userId))
+                    var teamPlayer = team.Players.Where(u => u.Id == userId).FirstOrDefault();
+
+                    if (teamPlayer != null)
                     {
-                        team.Players.Remove(userId);
+                        team.Players.Remove(teamPlayer);
                     }
                 }
             }

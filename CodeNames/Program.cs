@@ -1,6 +1,8 @@
 using CodeNames;
 using CodeNames.CodeNames.Core.Services.GameRoomService;
 using CodeNames.CodeNames.Core.Services.GridGenerator;
+using CodeNames.Core.Services.UserService;
+using CodeNames.DAL.Repository;
 using CodeNames.Data;
 using CodeNames.Hubs;
 using CodeNames.Models;
@@ -32,6 +34,8 @@ builder.Services.AddSignalR();
 builder.Services.AddScoped<IGridGenerator, GridGenerator>();
 builder.Services.AddScoped<IGameRoomRepository, GameRoomRepository>();
 builder.Services.AddScoped<IGameRoomService, GameRoomService>();
+builder.Services.AddScoped<IUserRepository,  UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 

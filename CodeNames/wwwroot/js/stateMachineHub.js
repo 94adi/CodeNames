@@ -17,8 +17,10 @@ connection.on("InvalidSession", () => {
 });
 
 connection.on("GameSessionStart", (jsonData) => {
-    //generate button to allow users to join team
-    console.log(jsonData);
+
+    let idlePlayers = JSON.parse(jsonData);
+
+    updateIdlePlayersList(idlePlayers);
 });
 
 
@@ -33,4 +35,17 @@ function rejected() {
     console.log("failed to connect");
 }
 
+function updateIdlePlayersList(idlePlayers) {
+    let isArrayEmpty = (!idlePlayers || (!Array.isArray(idlePlayers)) || idlePlayers.length === 0);
 
+    if (!isArrayEmpty) {
+        idlePlayers.forEach((item, index) => {
+            let idlePlayersUl = document.getElementById("idle-players-ul");
+            let li = document.createElement("li");
+            li.appendChild(document.createTextNode("#" + (++index) + " " + item.Name));
+            li.setAttribute('class', 'list-group-item text-center');
+            li.setAttribute('style', 'background-color:#E3963E');
+            idlePlayersUl.appendChild(li);     
+        });
+    }
+}

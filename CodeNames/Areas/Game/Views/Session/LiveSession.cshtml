@@ -1,6 +1,6 @@
 ﻿@model CodeNames.Models.ViewModels.LiveSessionVM;
 
-<h1 class="display-4 text-center">Test Room</h1>
+<h1 class="display-6 text-center">Test Room</h1>
 
 <input type="hidden" asp-for="@Model.LiveSession.SessionId" />
 
@@ -16,6 +16,10 @@
                     <a href="#" class="btn btn-primary" id="red-team-button">Join Red Team</a>
                 </div>
             </div>
+
+            <ul class="list-group mt-5" id="idle-players-ul">
+            </ul>
+
         </div>
         <div style="background-color:green" class="col-lg-8 game-panel">
             @for (int i = 0; i < Model.LiveSession.Grid.Rows; i++)
