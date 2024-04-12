@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNet.Identity.EntityFramework;
-using System.Drawing;
-
-namespace CodeNames.Models
+﻿namespace CodeNames.Models
 {
     public class Team 
     {

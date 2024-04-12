@@ -1,5 +1,6 @@
 ﻿using CodeNames.CodeNames.Core.Services.GameRoomService;
 using CodeNames.CodeNames.Core.Services.GridGenerator;
+using CodeNames.Core.Services.LiveGameSessionService;
 using CodeNames.Hubs;
 using CodeNames.Models;
 using CodeNames.Models.ViewModels;
@@ -18,15 +19,18 @@ namespace CodeNames.Areas.Game.Controllers
         private readonly IGridGenerator _gridGeneratorService;
         private readonly IGameRoomService _gameRoomService;
         private readonly IHubContext<StateMachineHub> _stateMachineHubContext;
+        private readonly ILiveGameSessionService _liveGameSessionService;
         private LiveSession _liveSessionModel;
 
         public SessionController(IGridGenerator gridGeneratorService,
             IGameRoomService gameRoomService,
-            IHubContext<StateMachineHub> stateMachineHubContext)
+            IHubContext<StateMachineHub> stateMachineHubContext,
+            ILiveGameSessionService liveGameSessionService)
         {
             _gridGeneratorService = gridGeneratorService;
             _gameRoomService = gameRoomService;
             _stateMachineHubContext = stateMachineHubContext;
+            _liveGameSessionService = liveGameSessionService;
         }
 
         public IActionResult Index()
@@ -43,15 +47,6 @@ namespace CodeNames.Areas.Game.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            LiveSession model = new LiveSession();
-
-            model.GameRoom = _gameRoomService.GetRoomByName(gameRoom);
-
-            if (model.GameRoom == null)
-            {
-                return NotFound();
-            }
-
             var hasGameRoomaAccess = _gameRoomService.IsInvitationCodeValid(gameRoom, new Guid(invitationCode));
 
             if (!hasGameRoomaAccess)
@@ -59,9 +54,41 @@ namespace CodeNames.Areas.Game.Controllers
                 return Forbid();
             }
 
-            PopulateLiveSessionModel(model);
+            LiveSession model = null;
 
-            GameSessionDictioary.AddSession(model);
+            var gameRoomObj = _gameRoomService.GetRoomByName(gameRoom);
+
+            if(gameRoomObj != null)
+            {
+                var liveGameSession = _liveGameSessionService.GetByGameRoom(gameRoomObj.Id);
+
+                var sessionId = liveGameSession?.SessionId;
+
+                model = GameSessionDictioary.GetSession(sessionId.HasValue ? sessionId.Value : Guid.Empty);
+            }
+
+            if(model == null)
+            {
+                model = new LiveSession();
+
+                model.GameRoom = _gameRoomService.GetRoomByName(gameRoom);
+
+                if (model.GameRoom == null)
+                {
+                    return NotFound();
+                }
+                //no need to populate it IF IT ALREADY EXISTS!!!
+                PopulateLiveSessionModel(model);
+                //add live session to db
+                GameSessionDictioary.AddSession(model);
+
+                LiveGameSession liveGameSession = new LiveGameSession
+                {
+                    GameRoomId = model.GameRoom.Id,
+                    SessionId = model.SessionId,
+                };
+                _liveGameSessionService.AddEditLiveSession(liveGameSession);
+            }
 
             ViewBag.ColorDictionary = StaticDetails.ColorToHexDict;
 

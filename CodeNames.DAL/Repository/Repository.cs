@@ -8,7 +8,7 @@ namespace CodeNames.Repository
     {
 
         private readonly AppDbContext _db;
-        internal DbSet<T> dbSet;
+        protected DbSet<T> dbSet;
 
         public Repository(AppDbContext db)
         {

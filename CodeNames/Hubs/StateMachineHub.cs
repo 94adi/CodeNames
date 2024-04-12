@@ -1,4 +1,5 @@
-﻿using CodeNames.Core.Services.UserService;
+﻿using CodeNames.Core.Services.LiveGameSessionService;
+using CodeNames.Core.Services.UserService;
 using CodeNames.Models;
 using Microsoft.AspNetCore.SignalR;
 using NuGet.Protocol;
@@ -16,15 +17,27 @@ namespace CodeNames.Hubs
 
         private readonly IUserService _userService;
 
-        public StateMachineHub(IUserService userService)
+        private readonly ILiveGameSessionService _liveGameSessionService;
+
+        public StateMachineHub(IUserService userService,
+            ILiveGameSessionService liveGameSessionService)
         {
             _userService = userService;
+            _liveGameSessionService = liveGameSessionService;
         }
         public async Task ReceiveSessionId(string sessionId)
         {
+            var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId == null) 
+            {
+                await Clients.All.SendAsync("InvalidSession");
+                return; 
+            }
+
+            var connectionId = Context.ConnectionId;
             var sessionGuidId = new Guid(sessionId);
 
-            //_currentSession = GameSessionDictioary.GetSession(new Guid());
             _currentSession = GameSessionDictioary.GetSession(sessionGuidId);
 
             if (_currentSession == null)
@@ -50,9 +63,16 @@ namespace CodeNames.Hubs
 
             }
 
-            _currentSession.SessionState = SessionState.Start;
+            GameSessionDictioary.AddUserToSession(userId, connectionId, _currentSession.SessionId.ToString());
+
+            if(_currentSession.SessionState == SessionState.Pending)
+                _currentSession.SessionState = SessionState.Start;
+
             var idlePlayersJson = _currentSession.IdlePlayers.ToJson();
-            await Clients.All.SendAsync("GameSessionStart", idlePlayersJson);
+
+            await Clients.User(Context.ConnectionId).SendAsync("GameSessionStart");
+
+            await Clients.All.SendAsync("RefreshIdlePlayersList", idlePlayersJson);
         }
 
         public override Task OnConnectedAsync()
@@ -62,39 +82,46 @@ namespace CodeNames.Hubs
             if (userId == null)
                 return base.OnConnectedAsync();
 
+            var connectionId = Context.ConnectionId;
+
             var userName = _userService.GetUserName(userId);
 
             var newUser = new SessionUser { Id = userId, Name = userName, ConnectionId = Context.ConnectionId };
 
-            if (_currentSession == null)
+            //it's always gonna be null; gotta add user to session first!
+            var currentSession = GameSessionDictioary.GetUserSession(userId, connectionId);
+
+            if (currentSession == null)
             {       
                 _queuedPlayers.Add(newUser);
                 return base.OnConnectedAsync();
             }
 
-            if(_queuedPlayers != null && _queuedPlayers.Count > 0) 
-            {
-                foreach(var item in _queuedPlayers)
-                {
-                    var isUserRegistered = _currentSession.IdlePlayers.Where(u => u.Id.Equals(item.Id)).FirstOrDefault() == null ? false : true;
+            //if(_queuedPlayers != null && _queuedPlayers.Count > 0) 
+            //{
+            //    foreach(var item in _queuedPlayers)
+            //    {
+            //        var isUserRegistered = currentSession.IdlePlayers.Where(u => u.Id.Equals(item.Id)).FirstOrDefault() == null ? false : true;
 
-                    if (!isUserRegistered)
-                    {
-                        _currentSession.IdlePlayers.Add(item);
-                    }
-                }
-                _queuedPlayers.Clear();
+            //        if (!isUserRegistered)
+            //        {
+            //            currentSession.IdlePlayers.Add(item);
+            //        }
+            //    }
+            //    _queuedPlayers.Clear();
 
-            }
+            //}
 
-            if (_currentSession.IdlePlayers.Where(u => u.Id.Equals(userId)).FirstOrDefault() == null)
-            {
-                _currentSession.IdlePlayers.Add(newUser);
-            }
-            else
-            {
-                newUser.ConnectionId = Context.ConnectionId;
-            }
+            //if (currentSession.IdlePlayers.Where(u => u.Id.Equals(userId)).FirstOrDefault() == null)
+            //{
+            //    currentSession.IdlePlayers.Add(newUser);
+            //}
+            //else
+            //{
+            //    newUser.ConnectionId = Context.ConnectionId;
+            //}
+
+            //Clients.All.SendAsync("RefreshIdlePlayersList", currentSession.IdlePlayers.ToJson());
 
             return base.OnConnectedAsync();
 
@@ -109,7 +136,9 @@ namespace CodeNames.Hubs
             if(userId == null)
             {
                 return base.OnDisconnectedAsync(exception);
-            }           
+            }
+
+            var connectionId = Context.ConnectionId;
 
             var queuedUser = _queuedPlayers.Where(u => u.Id == userId).FirstOrDefault();
 
@@ -118,30 +147,49 @@ namespace CodeNames.Hubs
                 _queuedPlayers.Remove(queuedUser);
             }
 
-            if(_currentSession != null)
+            var currentSession = GameSessionDictioary.GetUserSession(userId, connectionId);
+
+            if(currentSession != null)
             {
-                var idlePlayer = _currentSession.IdlePlayers.Where(u => u.Id == userId).FirstOrDefault();
-                var activePlayer = _currentSession.PlayersList.Where(u => u.Id == userId).FirstOrDefault();
+                var idlePlayer = currentSession.IdlePlayers.Where(u => u.Id == userId).FirstOrDefault();
+                var activePlayer = currentSession.PlayersList.Where(u => u.Id == userId).FirstOrDefault();
 
                 if (idlePlayer != null)
                 {
-                    _currentSession.IdlePlayers.Remove(idlePlayer);
+                    currentSession.IdlePlayers.Remove(idlePlayer);
                 }
 
                 if (activePlayer != null)
                 {
-                    _currentSession.PlayersList.Remove(activePlayer);
-                }
+                    currentSession.PlayersList.Remove(activePlayer);
 
-                foreach (var team in _currentSession.Teams)
-                {
-                    var teamPlayer = team.Players.Where(u => u.Id == userId).FirstOrDefault();
-
-                    if (teamPlayer != null)
+                    foreach (var team in currentSession.Teams)
                     {
-                        team.Players.Remove(teamPlayer);
+                        if (team.Players != null && team.Players.Count > 0)
+                        {
+                            var teamPlayer = team.Players?.Where(u => u.Id == userId).FirstOrDefault();
+
+                            if (teamPlayer != null)
+                            {
+                                team.Players?.Remove(teamPlayer);
+                            }
+                        }
                     }
+
                 }
+
+                if(currentSession != null && currentSession.IdlePlayers != null && currentSession.IdlePlayers.Count == 0 )
+                {
+                    var liveGameSession = _liveGameSessionService.GetByGameRoom(currentSession.GameRoom.Id);
+
+                    _liveGameSessionService.Remove(liveGameSession);
+
+                    GameSessionDictioary.RemoveSession(currentSession);
+
+                    return base.OnDisconnectedAsync(exception);
+                }
+
+                Clients.All.SendAsync("RefreshIdlePlayersList", currentSession?.IdlePlayers.ToJson());
             }
 
             return base.OnDisconnectedAsync(exception);

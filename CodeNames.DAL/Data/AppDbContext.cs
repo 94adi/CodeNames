@@ -12,5 +12,7 @@ namespace CodeNames.Data
         }
 
         public DbSet<GameRoom> GameRooms { get; set; }
+
+        public DbSet<LiveGameSession> LiveGameSession { get; set; }
     }
 }

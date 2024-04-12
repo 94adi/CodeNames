@@ -12,21 +12,21 @@ window.addEventListener('DOMContentLoaded', (event) => {
 });
 
 connection.on("InvalidSession", () => {
-    //use toastr
+    //redirect to invalid session page
     alert("Invalid session");
 });
 
-connection.on("GameSessionStart", (jsonData) => {
+connection.on("GameSessionStart", () => {
+        //verify if user can join red/blue team
+});
 
+connection.on("RefreshIdlePlayersList", (jsonData) => {
     let idlePlayers = JSON.parse(jsonData);
 
     updateIdlePlayersList(idlePlayers);
 });
 
-
-
 function fullfilled() {
-    console.log("Connected!");
     let sessionId = $("#LiveSession_SessionId").val();
     connection.invoke("ReceiveSessionId", sessionId);
 }
@@ -37,10 +37,11 @@ function rejected() {
 
 function updateIdlePlayersList(idlePlayers) {
     let isArrayEmpty = (!idlePlayers || (!Array.isArray(idlePlayers)) || idlePlayers.length === 0);
-
+    
     if (!isArrayEmpty) {
+        let idlePlayersUl = document.getElementById("idle-players-ul");
+        idlePlayersUl.innerHTML = null;
         idlePlayers.forEach((item, index) => {
-            let idlePlayersUl = document.getElementById("idle-players-ul");
             let li = document.createElement("li");
             li.appendChild(document.createTextNode("#" + (++index) + " " + item.Name));
             li.setAttribute('class', 'list-group-item text-center');

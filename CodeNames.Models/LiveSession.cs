@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNet.Identity.EntityFramework;
-using System.Media;
-
-namespace CodeNames.Models
+﻿namespace CodeNames.Models
 {
     //1 live session -> 1 game room
     public class LiveSession
@@ -11,7 +8,7 @@ namespace CodeNames.Models
         public IList<Team> Teams { get; set; } = new List<Team>();
         public IList<SessionUser> IdlePlayers { get; set; } = new List<SessionUser>();
         public GameRoom GameRoom { get; set; }
-        public SessionState SessionState { get; set; } = SessionState.Init;
+        public SessionState SessionState { get; set; } = SessionState.Pending;
         public Grid Grid { get; set; }
         public List<List<Block>> GridMatrix { get; set; }
         public Clue Clue { get; set; }
