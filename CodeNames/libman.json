@@ -5,6 +5,14 @@
     {
       "library": "@microsoft/signalr@6.0.6",
       "destination": "wwwroot/lib/microsoft/signalr/"
+    },
+    {
+      "provider": "unpkg",
+      "library": "jquery@3.7.1",
+      "destination": "wwwroot/jquery/",
+      "files": [
+        "dist/jquery.min.js"
+      ]
     }
   ]
 }

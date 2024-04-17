@@ -8,18 +8,25 @@
     <div class="row justify-content-start">
         <div class="col-lg-2 left-panel bg-secondary bg-gradient">
             <h1 class="text-white">Red Team</h1>
-            <ul class="list-group red-team-ul bg-info bg-gradient">
+            <ul class="list-group red-team-ul bg-info bg-gradient" id="red-team-ul">
                 <li style="background-color:#ff8080" class="list-group-item text-center">TEst 1</li>
             </ul>
-            <div class="row mt-5">
+            <div class="row mt-5 Red-team-join-div">
                 <div class="col-12 d-flex justify-content-center">
-                    <a href="#" class="btn btn-primary" id="red-team-button">Join Red Team</a>
+                    <a href="#" class="btn btn-primary" id="redTeamJoinBtn" data-value=@Color.Red>Join Red Team</a>
+                </div>
+            </div>
+            <div class="row mt-5 Red-spymaster-join-div d-none ">
+                <div class="col-12 d-flex justify-content-center">
+                    <a href="#" class="btn btn-primary" id="RedSpymaster" data-value=@Color.Red>Become SpyMaster</a>
                 </div>
             </div>
 
-            <ul class="list-group mt-5" id="idle-players-ul">
-            </ul>
-
+            <div class="row mt-5">
+                <h1 class="text-white">Idle Players</h1>
+                <ul class="list-group mt-1" id="idle-players-ul">
+                </ul>
+            </div>
         </div>
         <div style="background-color:green" class="col-lg-8 game-panel">
             @for (int i = 0; i < Model.LiveSession.Grid.Rows; i++)
@@ -63,14 +70,17 @@
         </div>
         <div class="col-lg-2 right-panel bg-secondary bg-gradient">
             <h1 class="text-white">Blue Team</h1>
-                <ul class="list-group blue-team-ul bg-info bg-gradient">
+            <ul class="list-group bg-info bg-gradient" id="blue-team-ul">
                     <li style="background-color:#72a5f7" class="list-group-item text-center">TEst 1</li>
-                    <li style="background-color:#72a5f7"  class="list-group-item text-center">TEst 2</li>
-                    <li style="background-color:#72a5f7"  class="list-group-item text-center">TEst 3</li>
                 </ul>
-            <div class="row mt-5">
+            <div class="row mt-5 Blue-team-join-div">
                 <div class="col-12 d-flex justify-content-center">
-                    <a href="#" class="btn btn-primary" id="blue-team-button">Join Blue Team</a>
+                    <a href="#" class="btn btn-primary" id="blueTeamJoinBtn" data-value=@Color.Blue>Join Blue Team</a>
+                </div>
+            </div>
+            <div class="row mt-5 Blue-spymaster-join-div d-none">
+                <div class="col-12 d-flex justify-content-center">
+                    <a href="#" class="btn btn-primary" id="BlueSpymaster" data-value=@Color.Blue>Become SpyMaster</a>
                 </div>
             </div>
         </div>
@@ -82,3 +92,4 @@
 
 <script src="~/js/signalr.min.js"></script>
 <script src="~/js/stateMachineHub.js"></script>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>

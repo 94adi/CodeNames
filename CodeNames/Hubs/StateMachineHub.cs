@@ -11,7 +11,7 @@ namespace CodeNames.Hubs
     //Instead of using global static variable, change with a nosql persistance layer
     public class StateMachineHub : Hub
     {
-        private LiveSession _currentSession;
+        //private LiveSession _currentSession;
 
         private static IList<SessionUser> _queuedPlayers = new List<SessionUser>();
 
@@ -38,12 +38,12 @@ namespace CodeNames.Hubs
             var connectionId = Context.ConnectionId;
             var sessionGuidId = new Guid(sessionId);
 
-            _currentSession = GameSessionDictioary.GetSession(sessionGuidId);
+            LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
 
-            if (_currentSession == null)
+            if (currentSession == null)
             {
-                _currentSession = new();
-                _currentSession.SessionState = SessionState.Failed;
+                currentSession = new();
+                currentSession.SessionState = SessionState.Failed;
                 await Clients.All.SendAsync("InvalidSession");
                 return;
             }
@@ -54,25 +54,83 @@ namespace CodeNames.Hubs
             {
                 foreach (var item in _queuedPlayers)
                 {
-                    if (_currentSession.IdlePlayers.Where(u => u.Id.Equals(item.Id)).FirstOrDefault() == null)
+                    if (currentSession.IdlePlayers.Where(u => u.Id.Equals(item.Id)).FirstOrDefault() == null)
                     {
-                        _currentSession.IdlePlayers.Add(item);
+                        currentSession.IdlePlayers.Add(item);
                     }
                 }
                 _queuedPlayers.Clear();
 
             }
 
-            GameSessionDictioary.AddUserToSession(userId, connectionId, _currentSession.SessionId.ToString());
+            GameSessionDictioary.AddUserToSession(userId, connectionId, currentSession.SessionId.ToString());
 
-            if(_currentSession.SessionState == SessionState.Pending)
-                _currentSession.SessionState = SessionState.Start;
+            if(currentSession.SessionState == SessionState.Pending)
+                currentSession.SessionState = SessionState.Start;
 
-            var idlePlayersJson = _currentSession.IdlePlayers.ToJson();
+            var idlePlayersJson = currentSession.IdlePlayers.ToJson();
 
             await Clients.User(Context.ConnectionId).SendAsync("GameSessionStart");
 
             await Clients.All.SendAsync("RefreshIdlePlayersList", idlePlayersJson);
+        }
+
+        public async Task UserJoinedTeam(string sessionId, string teamColor)
+        {
+            var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var connectionId = Context.ConnectionId;
+            var sessionGuidId = new Guid(sessionId);
+            var userName = _userService.GetUserName(userId);
+
+            var player = new SessionUser
+            {
+                Id = userId,
+                Name = userName,
+                ConnectionId = connectionId
+            };
+
+            LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
+
+            if(currentSession == null || currentSession.SessionState != SessionState.Start)
+            {
+                //send signal to user couldn't be added
+                return;
+            }
+
+            bool userAlreadyJoined = false;
+
+            foreach(var team in currentSession.Teams)
+            {
+                if (team.Players.Contains(player))
+                {
+                    userAlreadyJoined = true;
+                    return;
+                }
+            }
+
+            if (userAlreadyJoined) return;
+
+            Enum.TryParse(teamColor, out Color enumTeamColor);
+
+            var selectedTeam = currentSession.Teams.Where(t => t.Color == enumTeamColor).FirstOrDefault();
+            if(selectedTeam != null)
+            {
+                selectedTeam?.Players.Add(player);
+                currentSession.PlayersList.Add(player);
+                var playerToRemove = currentSession.IdlePlayers.Where(p => p.Id == player.Id).FirstOrDefault();
+                currentSession.IdlePlayers.Remove(playerToRemove);
+
+                await Clients.All.SendAsync("AddTeamPlayer", teamColor, selectedTeam?.Players.ToJson());
+
+                await Clients.All.SendAsync("RefreshIdlePlayersList", currentSession.IdlePlayers.ToJson());
+
+                await Clients.User(userId).SendAsync("ChangeJoinButtonToSpymaster", teamColor);
+
+                return;
+            }
+
+            //something went wrong :(
+
         }
 
         public override Task OnConnectedAsync()
@@ -86,45 +144,11 @@ namespace CodeNames.Hubs
 
             var userName = _userService.GetUserName(userId);
 
-            var newUser = new SessionUser { Id = userId, Name = userName, ConnectionId = Context.ConnectionId };
-
-            //it's always gonna be null; gotta add user to session first!
-            var currentSession = GameSessionDictioary.GetUserSession(userId, connectionId);
-
-            if (currentSession == null)
-            {       
-                _queuedPlayers.Add(newUser);
-                return base.OnConnectedAsync();
-            }
-
-            //if(_queuedPlayers != null && _queuedPlayers.Count > 0) 
-            //{
-            //    foreach(var item in _queuedPlayers)
-            //    {
-            //        var isUserRegistered = currentSession.IdlePlayers.Where(u => u.Id.Equals(item.Id)).FirstOrDefault() == null ? false : true;
-
-            //        if (!isUserRegistered)
-            //        {
-            //            currentSession.IdlePlayers.Add(item);
-            //        }
-            //    }
-            //    _queuedPlayers.Clear();
-
-            //}
-
-            //if (currentSession.IdlePlayers.Where(u => u.Id.Equals(userId)).FirstOrDefault() == null)
-            //{
-            //    currentSession.IdlePlayers.Add(newUser);
-            //}
-            //else
-            //{
-            //    newUser.ConnectionId = Context.ConnectionId;
-            //}
-
-            //Clients.All.SendAsync("RefreshIdlePlayersList", currentSession.IdlePlayers.ToJson());
+            var newUser = new SessionUser { Id = userId, Name = userName, ConnectionId = connectionId };
+    
+            _queuedPlayers.Add(newUser);
 
             return base.OnConnectedAsync();
-
         }
 
 
@@ -140,11 +164,13 @@ namespace CodeNames.Hubs
 
             var connectionId = Context.ConnectionId;
 
-            var queuedUser = _queuedPlayers.Where(u => u.Id == userId).FirstOrDefault();
+            
 
-            if ((_queuedPlayers.Count > 0) && (queuedUser != null))
+            if (_queuedPlayers != null && _queuedPlayers.Count > 0)
             {
-                _queuedPlayers.Remove(queuedUser);
+                var queuedUser = _queuedPlayers.Where(u => u.Id == userId).FirstOrDefault();
+                if(queuedUser != null) 
+                    _queuedPlayers.Remove(queuedUser);
             }
 
             var currentSession = GameSessionDictioary.GetUserSession(userId, connectionId);
@@ -177,8 +203,8 @@ namespace CodeNames.Hubs
                     }
 
                 }
-
-                if(currentSession != null && currentSession.IdlePlayers != null && currentSession.IdlePlayers.Count == 0 )
+                
+                if(currentSession.IdlePlayers != null && currentSession.IdlePlayers.Count == 0 )
                 {
                     var liveGameSession = _liveGameSessionService.GetByGameRoom(currentSession.GameRoom.Id);
 
