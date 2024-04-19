@@ -119,19 +119,19 @@ namespace CodeNames.Areas.Game.Controllers
             model.Grid = _gridGeneratorService.Generate();
         }
 
-        private List<List<Block>> ConvertListToMatrix(Grid grid)
+        private List<List<Card>> ConvertListToMatrix(Grid grid)
         {
             int rows = grid.Rows;
             int cols = grid.Columns;
             int counter = 0;
-            List<List<Block>> result = new();
+            List<List<Card>> result = new();
 
             for (int i = 0; i < rows; i++)
             {
-                var newRow = new List<Block>();
+                var newRow = new List<Card>();
                 for (int j = 0; j < cols; j++)
                 {
-                    newRow.Add(grid.Blocks[counter]);
+                    newRow.Add(grid.Cards[counter]);
                     counter++;
                 }
                 result.Add(newRow);

@@ -35,14 +35,12 @@
                     @for (int j = 0; j < Model.LiveSession.Grid.Columns; j++)
                     {
                         int rowIndex = i * Model.LiveSession.Grid.Columns;
-                        var blockColor = ViewBag.ColorDictionary[Model.LiveSession.Grid.Blocks[rowIndex + j].Color];
-                        var blockColorEnum = Model.LiveSession.Grid.Blocks[rowIndex + j].Color;
-                        string color = $"background-color:{blockColor}";
-                        string textColor = (blockColorEnum == Color.Black) ? "color:white" : "color:black";
+                        var blockColorEnum = Model.LiveSession.Grid.Cards[rowIndex + j].Color;
+                        string cardId = Model.LiveSession.Grid.Cards[rowIndex + j].CardId;
                         <div class="col-2">
-                            <div class="card mb-3" style="max-width: 18rem; @color">
+                            <div class="card mb-3" id=@cardId style="max-width: 18rem; background-color:antiquewhite">
                                 <div class="card-body text-center">
-                                    <h5 class="card-title" style="@textColor">@Model.LiveSession.Grid.Blocks[rowIndex + j].Content</h5>
+                                    <h5 class="card-title">@Model.LiveSession.Grid.Cards[rowIndex + j].Content</h5>
                                     <a href="#" class="btn btn-primary">Guess</a>
                                 </div>
                             </div>

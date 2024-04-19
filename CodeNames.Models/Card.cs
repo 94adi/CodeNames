@@ -1,7 +1,8 @@
 ﻿namespace CodeNames.Models
 {
-    public class Block
+    public class Card
     {
+        public string CardId { get; set; }
         public int Row { get; set; }
         public int Column { get; set; }
         public string Content { get; set; }

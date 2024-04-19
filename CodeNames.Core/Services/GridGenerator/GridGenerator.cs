@@ -29,7 +29,7 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
 
             return new Grid
             {
-                Blocks = generatedBlocks,
+                Cards = generatedBlocks,
                 Rows = _gameParametersOptions.NumberOfRows,
                 Columns = _gameParametersOptions.NumberOfColumns
             };
@@ -51,12 +51,12 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
             return result;
         }
 
-        private HashSet<Block> GenerateBlocks(IList<string> words)
+        private HashSet<Card> GenerateBlocks(IList<string> words)
         {
             var randomColumns = new HashSet<int>();
             var randomRows = new HashSet<int>();
 
-            var blockCollection = new HashSet<Block>();
+            var blockCollection = new HashSet<Card>();
 
             var randomSelector = new Random();
 
@@ -69,11 +69,16 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
                 {
                     Color cardColor = Color.None;
                     GenerateColor(ref cardColor);
-                    var currentBlock = new Block
+                    string word = _words[randomSelector.Next(_words.Count)];
+                    int row = randomRows.ElementAt(i);
+                    int column = randomColumns.ElementAt(j);
+
+                    var currentBlock = new Card
                     {
-                        Row = randomRows.ElementAt(i),
-                        Column = randomColumns.ElementAt(j),
-                        Content = _words[randomSelector.Next(_words.Count)],
+                        CardId = $"card-at-{row}-{column}",
+                        Row = row,
+                        Column = column,
+                        Content = word,
                         Color = cardColor
                     };
 

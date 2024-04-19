@@ -10,7 +10,7 @@
         public GameRoom GameRoom { get; set; }
         public SessionState SessionState { get; set; } = SessionState.Pending;
         public Grid Grid { get; set; }
-        public List<List<Block>> GridMatrix { get; set; }
+        public List<List<Card>> GridMatrix { get; set; }
         public Clue Clue { get; set; }
         
         public LiveSession()

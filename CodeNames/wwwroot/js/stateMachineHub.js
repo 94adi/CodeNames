@@ -6,7 +6,7 @@
 var colorToListDictionary = { Blue: "blue-team-ul", Red: "red-team-ul", Idle: "idle-players-ul" };
 var colorToBtnDictionary = { Blue: "blueTeamJoinBtn", Red: "redTeamJoinBtn" };
 var idlePlayerIdPrefix = "IdlePlayer-";
-
+var sessionId = null;
 window.addEventListener('DOMContentLoaded', (event) => {
     connection.start().then(fullfilled, rejected);
 });
@@ -29,7 +29,7 @@ connection.on("RefreshIdlePlayersList", (jsonData) => {
     updatePlayersList("Idle", idlePlayers);
 });
 
-connection.on("AddTeamPlayer", (teamColor, selectedTeamJson) => {
+connection.on("RefreshTeamPlayer", (teamColor, selectedTeamJson) => {
     let selectedTeam = JSON.parse(selectedTeamJson);
 
     updatePlayersList(teamColor, selectedTeam);
@@ -41,16 +41,26 @@ connection.on("ChangeJoinButtonToSpymaster", (btnColor) => {
     let spyMasterBtnDiv = btnColor + '-spymaster-join-div';
     $('.' + spyMasterBtnDiv).removeClass('d-none');
     document.getElementById(spyMasterBtnId).addEventListener("click", function () {
-        console.log("clicked" + btnColor + "button!");
         $('.' + spyMasterBtnDiv).addClass('d-none');
         //handle user registration to be spymaster
+        connection.invoke("TransformUserToSpymaster", sessionId, btnColor);
     });
+});
 
+connection.on("ChangeViewToSpymaster", (cardsToReveal) => {
+    let cardsToRevealArray = JSON.parse(cardsToReveal);
+    let isArrayEmpty = (!cardsToRevealArray || (!Array.isArray(cardsToRevealArray)) || cardsToRevealArray.length === 0);
 
+    if (isArrayEmpty) return;
+
+    cardsToRevealArray.forEach((v, i) => {
+        let cardId = "#" + v.CardId;
+        $(cardId).css("background-color", v.Color);
+    });
 });
 
 function fullfilled() {
-    let sessionId = $("#LiveSession_SessionId").val();
+    sessionId = $("#LiveSession_SessionId").val();
 
     connection.invoke("ReceiveSessionId", sessionId);
 

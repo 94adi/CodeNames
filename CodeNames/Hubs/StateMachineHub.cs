@@ -73,6 +73,12 @@ namespace CodeNames.Hubs
             await Clients.User(Context.ConnectionId).SendAsync("GameSessionStart");
 
             await Clients.All.SendAsync("RefreshIdlePlayersList", idlePlayersJson);
+
+            foreach(var team in currentSession.Teams)
+            {
+                await Clients.All.SendAsync("RefreshTeamPlayer", team.Color.ToString(), team.Players.ToJson());
+            }
+            
         }
 
         public async Task UserJoinedTeam(string sessionId, string teamColor)
@@ -120,7 +126,7 @@ namespace CodeNames.Hubs
                 var playerToRemove = currentSession.IdlePlayers.Where(p => p.Id == player.Id).FirstOrDefault();
                 currentSession.IdlePlayers.Remove(playerToRemove);
 
-                await Clients.All.SendAsync("AddTeamPlayer", teamColor, selectedTeam?.Players.ToJson());
+                await Clients.All.SendAsync("RefreshTeamPlayer", teamColor, selectedTeam?.Players.ToJson());
 
                 await Clients.All.SendAsync("RefreshIdlePlayersList", currentSession.IdlePlayers.ToJson());
 
@@ -133,6 +139,51 @@ namespace CodeNames.Hubs
 
         }
 
+        public async Task TransformUserToSpymaster(string sessionId, string teamColor)
+        {
+            var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var sessionGuidId = new Guid(sessionId);
+
+            LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
+
+            if (currentSession == null || currentSession.SessionState != SessionState.Start)
+            {
+                //send signal to user couldn't be added
+                return;
+            }
+
+            Enum.TryParse(teamColor, out Color enumTeamColor);
+
+            var team = currentSession.Teams.Where(t => t.Color == enumTeamColor).FirstOrDefault();
+
+            if (team == null)
+            {
+                //couldn't find team, send message
+                return;
+            }
+
+            //TO DO: make sure that there are no other players already spymaster
+
+            var player = team.Players.Where(p => p.Id == userId).FirstOrDefault();
+
+            if(player == null)
+            {
+                return;
+            }
+
+            player.IsSpymaster = true;
+
+            var spymasterSecret = currentSession.Grid.Cards.Where(c => c.Color != Color.Neutral)
+                    .Select(c => new RevealedCard
+                    {
+                        CardId = c.CardId,
+                        Color = c.Color.ToString(),
+                        Content = c.Content
+                    }).ToArray().ToJson();
+
+            //the spymaster can see the color of all cards + enter data in the clue form
+            await Clients.User(userId).SendAsync("ChangeViewToSpymaster", spymasterSecret);
+        }
         public override Task OnConnectedAsync()
         {
             var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -183,6 +234,7 @@ namespace CodeNames.Hubs
                 if (idlePlayer != null)
                 {
                     currentSession.IdlePlayers.Remove(idlePlayer);
+                    Clients.All.SendAsync("RefreshIdlePlayersList", currentSession?.IdlePlayers.ToJson());
                 }
 
                 if (activePlayer != null)
@@ -198,13 +250,18 @@ namespace CodeNames.Hubs
                             if (teamPlayer != null)
                             {
                                 team.Players?.Remove(teamPlayer);
+                                Clients.All.SendAsync("RefreshTeamPlayer", team.Color.ToString(), team.Players.ToJson());
+                                //return base.OnDisconnectedAsync(exception);
                             }
                         }
                     }
 
                 }
-                
-                if(currentSession.IdlePlayers != null && currentSession.IdlePlayers.Count == 0 )
+
+                bool isIdlePLayersListEmpty = (currentSession.IdlePlayers != null && currentSession.IdlePlayers.Count == 0);
+                bool isActivePlayersListEMpty = (currentSession.PlayersList != null && currentSession.PlayersList.Count == 0);
+
+                if(isIdlePLayersListEmpty && isActivePlayersListEMpty)
                 {
                     var liveGameSession = _liveGameSessionService.GetByGameRoom(currentSession.GameRoom.Id);
 
@@ -215,7 +272,6 @@ namespace CodeNames.Hubs
                     return base.OnDisconnectedAsync(exception);
                 }
 
-                Clients.All.SendAsync("RefreshIdlePlayersList", currentSession?.IdlePlayers.ToJson());
             }
 
             return base.OnDisconnectedAsync(exception);
