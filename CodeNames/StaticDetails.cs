@@ -11,7 +11,10 @@ namespace CodeNames
             { Color.Red, "#FF0000" },
             { Color.Blue, "#0000FF" },
             { Color.Neutral, "#FFFDD0" },
-            { Color.Black, "#000000" }
+            { Color.Black, "#000000" },
+            { Color.BackgrounBlue, "#cbddfb" },
+            { Color.BackgroundRed, "#e58282" },
+            { Color.InitialNeutralBackground, "#66b02c"}
         };
     }
 }

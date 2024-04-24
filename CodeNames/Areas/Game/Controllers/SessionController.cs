@@ -104,6 +104,13 @@ namespace CodeNames.Areas.Game.Controllers
             return View(viewModel);
         }
 
+
+        [HttpPost]
+        public IActionResult Clue()
+        {
+            string test = "tGgesgegse";
+            return Ok();
+        }
         public IActionResult AccessForbidden(string gameRoom)
         {
             ViewBag.GameRoomName = gameRoom;

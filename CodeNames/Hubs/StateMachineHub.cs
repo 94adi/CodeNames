@@ -3,6 +3,7 @@ using CodeNames.Core.Services.UserService;
 using CodeNames.Models;
 using Microsoft.AspNetCore.SignalR;
 using NuGet.Protocol;
+using System.Numerics;
 using System.Security.Claims;
 
 namespace CodeNames.Hubs
@@ -110,7 +111,7 @@ namespace CodeNames.Hubs
                 if (team.Players.Contains(player))
                 {
                     userAlreadyJoined = true;
-                    return;
+                    break;
                 }
             }
 
@@ -158,11 +159,11 @@ namespace CodeNames.Hubs
 
             if (team == null)
             {
-                //couldn't find team, send message
                 return;
             }
 
-            //TO DO: make sure that there are no other players already spymaster
+            bool hasSpymaster = team.Players.Where(p => p.IsSpymaster == true).FirstOrDefault() != null ? true : false;
+            if (hasSpymaster) return;
 
             var player = team.Players.Where(p => p.Id == userId).FirstOrDefault();
 
@@ -173,17 +174,110 @@ namespace CodeNames.Hubs
 
             player.IsSpymaster = true;
 
+            team.SpyMaster = player;
+
             var spymasterSecret = currentSession.Grid.Cards.Where(c => c.Color != Color.Neutral)
                     .Select(c => new RevealedCard
                     {
                         CardId = c.CardId,
+                        //TO DO: use the color dictionary instead for hex values
+                        //Add text color value as well
                         Color = c.Color.ToString(),
                         Content = c.Content
                     }).ToArray().ToJson();
 
             //the spymaster can see the color of all cards + enter data in the clue form
             await Clients.User(userId).SendAsync("ChangeViewToSpymaster", spymasterSecret);
+
+            await Clients.AllExcept(player.ConnectionId).SendAsync("RemoveSpymasterButton", teamColor);
         }
+
+        public async Task SpymasterSubmitGuess(string sessionId, string clue, string noCardsTarget)
+        {
+            var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var sessionGuidId = new Guid(sessionId);
+
+            LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
+
+            if (currentSession == null || 
+                (currentSession.SessionState == SessionState.SpymasterRed || currentSession.SessionState == SessionState.SpymasterBlue))
+            {
+                //send signal to user couldn't be added
+                return;
+            }
+
+            //find player by Id 
+            SessionUser player = null;
+            Team playerTeam = null;
+            foreach (var team in currentSession.Teams)
+            {
+                player = team.Players.Where(p => p.Id == userId).FirstOrDefault();
+                if (player != null)
+                {
+                    playerTeam = team;
+                    break;
+                }
+            }
+
+            if (player == null || !player.IsSpymaster)
+            {
+                return;
+            }
+
+            var teamColor = playerTeam.Color;
+
+            bool isBlueTurn = currentSession.SessionState == SessionState.GuessBlue && teamColor == Color.Blue;
+            bool isRedTurn = currentSession.SessionState == SessionState.GuessRed && teamColor == Color.Red;
+
+            if (true /*isBlueTurn || isRedTurn*/)
+            {
+                int noCardsTargetInt = Int32.Parse(noCardsTarget);
+                currentSession.Clue = new Clue
+                {
+                    Word = clue,
+                    NoOfCards = noCardsTargetInt
+                };
+
+                //broadcast clue
+                await Clients.All.SendAsync("ReceivedSpymasterClue", currentSession.Clue);
+            }
+        }
+
+        public async Task StartGame(string sessionId)
+        {
+            var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var sessionGuidId = new Guid(sessionId);
+
+            SessionUser spyMasterBlue = null;
+
+            LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
+
+            if (currentSession == null || currentSession.SessionState != SessionState.Start)
+            {
+                //send signal the game couldn't be started
+                return;
+            }
+
+            //TO DO: additional conditions: 3 players/team with each team having a spymaster
+            //get user and verify if it's active (idle users should not see/submit the button
+            if(currentSession.SessionState == SessionState.Start)
+            {
+                currentSession.SessionState = SessionState.SpymasterBlue;
+                spyMasterBlue = currentSession.Teams.Where(t => t.Color == Color.Blue).FirstOrDefault()?.SpyMaster;
+            }
+
+            if (spyMasterBlue == null)
+            {
+                return;
+            }
+            //change UI so that only blue spymaster can give guess
+            //change for ALL except for Blue Spymaster
+            string backgroundColor = StaticDetails.ColorToHexDict[Color.BackgrounBlue];
+            await Clients.AllExcept(spyMasterBlue.ConnectionId).SendAsync("AwaitingSpymasterState", backgroundColor);
+
+            await Clients.User(spyMasterBlue.Id).SendAsync("SpyMasterMode", backgroundColor);
+        }
+
         public override Task OnConnectedAsync()
         {
             var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -201,7 +295,6 @@ namespace CodeNames.Hubs
 
             return base.OnConnectedAsync();
         }
-
 
         public override Task OnDisconnectedAsync(Exception? exception)
         {

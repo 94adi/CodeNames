@@ -5,8 +5,10 @@
         Pending,
         Init, //blue/red team joins groups, choose spymaster
         Start, //blue will start first
-        Red,
-        Blue,
+        SpymasterRed,
+        GuessRed,
+        SpymasterBlue,
+        GuessBlue,
         Finished,
         Failed
     }

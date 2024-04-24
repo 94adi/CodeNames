@@ -28,7 +28,7 @@
                 </ul>
             </div>
         </div>
-        <div style="background-color:green" class="col-lg-8 game-panel">
+        <div style="background-color:@ViewBag.ColorDictionary[Color.InitialNeutralBackground]" class="col-lg-8" id="gamePanel">
             @for (int i = 0; i < Model.LiveSession.Grid.Rows; i++)
             {
                 <div class="row justify-content-between p-1 mt-3">
@@ -38,10 +38,10 @@
                         var blockColorEnum = Model.LiveSession.Grid.Cards[rowIndex + j].Color;
                         string cardId = Model.LiveSession.Grid.Cards[rowIndex + j].CardId;
                         <div class="col-2">
-                            <div class="card mb-3" id=@cardId style="max-width: 18rem; background-color:antiquewhite">
+                            <div class="card mb-3 game-card" id=@cardId style="max-width: 18rem; background-color:antiquewhite">
                                 <div class="card-body text-center">
                                     <h5 class="card-title">@Model.LiveSession.Grid.Cards[rowIndex + j].Content</h5>
-                                    <a href="#" class="btn btn-primary">Guess</a>
+                                    <a href="#" class="btn btn-primary guess-btn disabled">Guess</a>
                                 </div>
                             </div>
                         </div>
@@ -51,19 +51,26 @@
 
             <hr class="hr hr-blurry mb-5 mt-2" />
 
-            <form class="m-3">
+            <form class="m-3 d-none" id="clueSubmitForm">
                 <div class="row justify-content-end">
                     <div class="col-2">
-                        <input type="text" class="form-control" placeholder="Enter clue">
+                        <input type="text" class="form-control" id="inputClue" placeholder="Enter clue">
                     </div>
                     <div class="col-1">
-                        <input type="number" class="form-control" min="1" />
+                        <input type="number" class="form-control" id="inputNumberTarget" min="1" />
                     </div>
                     <div class="col-2">
-                        <button class="btn btn-primary" type="button">Submit</button>
+                        <button class="btn btn-primary" type="submit">Submit</button>
                     </div>
                 </div>
             </form>
+           
+            <div id="startGameDiv" class="row justify-content-center ">
+                <!--d-none-->
+                <div class="col-3">
+                    <button type="button" id="btnStartGame" class="btn btn-dark mt-1 mb-4">Start Game</button>
+                </div>       
+            </div>
 
         </div>
         <div class="col-lg-2 right-panel bg-secondary bg-gradient">
@@ -78,7 +85,7 @@
             </div>
             <div class="row mt-5 Blue-spymaster-join-div d-none">
                 <div class="col-12 d-flex justify-content-center">
-                    <a href="#" class="btn btn-primary" id="BlueSpymaster" data-value=@Color.Blue>Become SpyMaster</a>
+                    <a href="#" class="btn btn-primary" id="BlueSpymasterBtn" data-value=@Color.Blue>Become SpyMaster</a>
                 </div>
             </div>
         </div>

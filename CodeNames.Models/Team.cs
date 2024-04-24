@@ -6,6 +6,7 @@
         public string Name { get; set; } = "";
         public IList<GameLog> GameLog { get; set; } = new List<GameLog>();
         public IList<SessionUser> Players { get; set; } = new List<SessionUser>();
+        public SessionUser SpyMaster { get; set; }
         public int NumberOfActiveCards { get; set; }
     }
 }

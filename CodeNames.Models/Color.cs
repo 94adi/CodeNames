@@ -6,6 +6,9 @@
         Blue, 
         Black, 
         Neutral,
+        BackgrounBlue,
+        BackgroundRed,
+        InitialNeutralBackground,
         None
     }
 }

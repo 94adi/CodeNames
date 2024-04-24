@@ -7,8 +7,24 @@ var colorToListDictionary = { Blue: "blue-team-ul", Red: "red-team-ul", Idle: "i
 var colorToBtnDictionary = { Blue: "blueTeamJoinBtn", Red: "redTeamJoinBtn" };
 var idlePlayerIdPrefix = "IdlePlayer-";
 var sessionId = null;
+
 window.addEventListener('DOMContentLoaded', (event) => {
     connection.start().then(fullfilled, rejected);
+
+    document.getElementById("clueSubmitForm").addEventListener("submit", (e) => {
+        e.preventDefault();      
+        let clue = $("#inputClue").val();
+        let noCardsTarget = $("#inputNumberTarget").val();
+        let formData = { Clue: clue, NoCardsTarget: noCardsTarget };
+        console.log(formData);
+        clueSubmitFormHandler(formData)
+    });
+
+    document.getElementById("btnStartGame").addEventListener("click", (e) => {
+        e.preventDefault();
+        console.log("clicked start game");
+        connection.invoke("StartGame", sessionId);
+    });
 });
 
 connection.on("InvalidSession", () => {
@@ -37,7 +53,7 @@ connection.on("RefreshTeamPlayer", (teamColor, selectedTeamJson) => {
 
 connection.on("ChangeJoinButtonToSpymaster", (btnColor) => {
 
-    let spyMasterBtnId = btnColor + 'Spymaster';
+    let spyMasterBtnId = btnColor + 'SpymasterBtn';
     let spyMasterBtnDiv = btnColor + '-spymaster-join-div';
     $('.' + spyMasterBtnDiv).removeClass('d-none');
     document.getElementById(spyMasterBtnId).addEventListener("click", function () {
@@ -57,6 +73,35 @@ connection.on("ChangeViewToSpymaster", (cardsToReveal) => {
         let cardId = "#" + v.CardId;
         $(cardId).css("background-color", v.Color);
     });
+
+    //remove become spymaster button for team
+
+});
+
+connection.on("RemoveSpymasterButton", (teamColor) => {
+    let id = "#" + teamColor + "SpymasterBtn";
+    console.log(id);
+    $(id).hide();
+});
+
+connection.on("ReceivedSpymasterClue", (clue) => {
+    let word = clue.word;
+    let noOfCards = clue.noOfCards;
+});
+
+connection.on("AwaitingSpymasterState", (color)=> {
+
+    $('.game-card').css('background-color', '#b7b0b0');
+    $('#gamePanel').css('background-color', color);
+    //$('.guess-btn').addClass('disabled');
+    $('#btnStartGame').hide();
+});
+
+connection.on("SpyMasterMode", (color) => {
+    console.log('SpyMasterMode');
+    $('#btnStartGame').hide();
+    $('#gamePanel').css('background-color', color);
+    $("#clueSubmitForm").removeClass('d-none');
 });
 
 function fullfilled() {
@@ -120,6 +165,15 @@ function updatePlayersList(type, playersList) {
         li.setAttribute('style', 'background-color:#E3963E'); //TO DO: use bg color based on team color!
         ul.appendChild(li);
     });
+}
+
+function clueSubmitFormHandler(data) {
+
+    //make a post to the server with the data
+    let clue = data.Clue;
+    let noCardsTarget = data.NoCardsTarget;
+
+    connection.invoke("SpymasterSubmitGuess", sessionId, clue, noCardsTarget);
 }
 
 
