@@ -8,13 +8,19 @@ namespace CodeNames
 
         public static Dictionary<Color, string> ColorToHexDict = new()
         {
-            { Color.Red, "#FF0000" },
-            { Color.Blue, "#0000FF" },
+            { Color.Red, "#9c1616" },
+            { Color.Blue, "#13489e" },
             { Color.Neutral, "#FFFDD0" },
             { Color.Black, "#000000" },
             { Color.BackgrounBlue, "#cbddfb" },
             { Color.BackgroundRed, "#e58282" },
             { Color.InitialNeutralBackground, "#66b02c"}
+        };
+
+        public static Dictionary<Color, Color> OppositeTeamsDict = new()
+        {
+            { Color.Red, Color.Blue },
+            { Color.Blue, Color.Red }
         };
     }
 }

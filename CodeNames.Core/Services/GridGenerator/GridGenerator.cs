@@ -75,7 +75,7 @@ namespace CodeNames.CodeNames.Core.Services.GridGenerator
 
                     var currentBlock = new Card
                     {
-                        CardId = $"card-at-{row}-{column}",
+                        CardId = $"cardAt-{row}-{column}",
                         Row = row,
                         Column = column,
                         Content = word,

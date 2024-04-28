@@ -8,7 +8,7 @@
         public IList<Team> Teams { get; set; } = new List<Team>();
         public IList<SessionUser> IdlePlayers { get; set; } = new List<SessionUser>();
         public GameRoom GameRoom { get; set; }
-        public SessionState SessionState { get; set; } = SessionState.Pending;
+        public SessionState SessionState { get; set; } = SessionState.PENDING;
         public Grid Grid { get; set; }
         public List<List<Card>> GridMatrix { get; set; }
         public Clue Clue { get; set; }

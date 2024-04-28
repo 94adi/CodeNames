@@ -1,6 +1,6 @@
 ﻿@model CodeNames.Models.ViewModels.LiveSessionVM;
 
-<h1 class="display-6 text-center">Test Room</h1>
+<h1 class="display-6 text-center" id="displayBanner"></h1>
 
 <input type="hidden" asp-for="@Model.LiveSession.SessionId" />
 
@@ -41,7 +41,7 @@
                             <div class="card mb-3 game-card" id=@cardId style="max-width: 18rem; background-color:antiquewhite">
                                 <div class="card-body text-center">
                                     <h5 class="card-title">@Model.LiveSession.Grid.Cards[rowIndex + j].Content</h5>
-                                    <a href="#" class="btn btn-primary guess-btn disabled">Guess</a>
+                                    <a href="#" class="btn btn-primary guess-btn disabled" value="@Model.LiveSession.Grid.Cards[rowIndex + j].Content">Guess</a>
                                 </div>
                             </div>
                         </div>

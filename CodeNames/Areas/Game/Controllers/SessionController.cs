@@ -120,7 +120,7 @@ namespace CodeNames.Areas.Game.Controllers
         private void PopulateLiveSessionModel(LiveSession model)
         {
 
-            model.SessionState = SessionState.Pending;
+            model.SessionState = SessionState.PENDING;
             model.Teams.Add(new RedTeam());
             model.Teams.Add(new BlueTeam());
             model.Grid = _gridGeneratorService.Generate();

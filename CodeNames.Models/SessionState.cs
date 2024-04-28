@@ -1,15 +1,17 @@
 ﻿namespace CodeNames.Models
 {
-    public enum SessionState : Byte
+    public enum SessionState : byte
     {
-        Pending,
-        Init, //blue/red team joins groups, choose spymaster
-        Start, //blue will start first
-        SpymasterRed,
-        GuessRed,
-        SpymasterBlue,
-        GuessBlue,
-        Finished,
-        Failed
+        UNKNOWN,
+        PENDING,
+        INIT, 
+        START, 
+        SPYMASTER_BLUE,
+        GUESS_BLUE,
+        SPYMASTER_RED,
+        GUESS_RED,
+        BLUE_WON,
+        RED_WON,
+        FAILURE
     }
 }

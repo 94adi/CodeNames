@@ -1,4 +1,5 @@
 ﻿using CodeNames.Core.Services.LiveGameSessionService;
+using CodeNames.Core.Services.StateMachineService;
 using CodeNames.Core.Services.UserService;
 using CodeNames.Models;
 using Microsoft.AspNetCore.SignalR;
@@ -20,11 +21,15 @@ namespace CodeNames.Hubs
 
         private readonly ILiveGameSessionService _liveGameSessionService;
 
+        private readonly IStateMachineService _stateMachineService;
+
         public StateMachineHub(IUserService userService,
-            ILiveGameSessionService liveGameSessionService)
+            ILiveGameSessionService liveGameSessionService,
+            IStateMachineService stateMachineService)
         {
             _userService = userService;
             _liveGameSessionService = liveGameSessionService;
+            _stateMachineService = stateMachineService;
         }
         public async Task ReceiveSessionId(string sessionId)
         {
@@ -44,7 +49,7 @@ namespace CodeNames.Hubs
             if (currentSession == null)
             {
                 currentSession = new();
-                currentSession.SessionState = SessionState.Failed;
+                currentSession.SessionState = SessionState.FAILURE;
                 await Clients.All.SendAsync("InvalidSession");
                 return;
             }
@@ -66,8 +71,8 @@ namespace CodeNames.Hubs
 
             GameSessionDictioary.AddUserToSession(userId, connectionId, currentSession.SessionId.ToString());
 
-            if(currentSession.SessionState == SessionState.Pending)
-                currentSession.SessionState = SessionState.Start;
+            if(currentSession.SessionState == SessionState.PENDING)
+                currentSession.SessionState = SessionState.START;
 
             var idlePlayersJson = currentSession.IdlePlayers.ToJson();
 
@@ -98,7 +103,7 @@ namespace CodeNames.Hubs
 
             LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
 
-            if(currentSession == null || currentSession.SessionState != SessionState.Start)
+            if(currentSession == null || currentSession.SessionState != SessionState.START)
             {
                 //send signal to user couldn't be added
                 return;
@@ -147,7 +152,7 @@ namespace CodeNames.Hubs
 
             LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
 
-            if (currentSession == null || currentSession.SessionState != SessionState.Start)
+            if (currentSession == null || currentSession.SessionState != SessionState.START)
             {
                 //send signal to user couldn't be added
                 return;
@@ -200,7 +205,8 @@ namespace CodeNames.Hubs
             LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
 
             if (currentSession == null || 
-                (currentSession.SessionState == SessionState.SpymasterRed || currentSession.SessionState == SessionState.SpymasterBlue))
+                (currentSession.SessionState != SessionState.SPYMASTER_RED && 
+                currentSession.SessionState != SessionState.SPYMASTER_BLUE))
             {
                 //send signal to user couldn't be added
                 return;
@@ -226,21 +232,125 @@ namespace CodeNames.Hubs
 
             var teamColor = playerTeam.Color;
 
-            bool isBlueTurn = currentSession.SessionState == SessionState.GuessBlue && teamColor == Color.Blue;
-            bool isRedTurn = currentSession.SessionState == SessionState.GuessRed && teamColor == Color.Red;
-
+            bool isBlueTurn = currentSession.SessionState == SessionState.SPYMASTER_BLUE && teamColor == Color.Blue;
+            bool isRedTurn = currentSession.SessionState == SessionState.SPYMASTER_RED && teamColor == Color.Red;
+            //DEBUG
             if (true /*isBlueTurn || isRedTurn*/)
             {
                 int noCardsTargetInt = Int32.Parse(noCardsTarget);
+
                 currentSession.Clue = new Clue
                 {
                     Word = clue,
                     NoOfCards = noCardsTargetInt
                 };
 
-                //broadcast clue
                 await Clients.All.SendAsync("ReceivedSpymasterClue", currentSession.Clue);
+
+                var userIds = playerTeam.Players.Select(p => p.Id).ToList();
+                userIds.Remove(player.Id);
+
+                await Clients.Users(userIds).SendAsync("ActivateCards");
+
+                currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, StateTransition.NONE);
             }
+        }
+
+        public async Task PlayerSubmitGuess(string sessionId, string row, string col)
+        {
+            //Important: A player from the current team needs to click on EACH card, not submit multple ones at once!
+
+            var sessionGuidId = new Guid(sessionId);    
+            var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
+
+            if(currentSession == null)
+            {
+                return;
+            }
+
+            SessionUser player = null;
+            Team playerTeam = null;
+            foreach (var team in currentSession.Teams)
+            {
+                player = team.Players.Where(p => p.Id == userId).FirstOrDefault();
+                if (player != null)
+                {
+                    playerTeam = team;
+                    break;
+                }
+            }
+
+            if(player == null || playerTeam == null)
+            {
+                return;
+            }
+
+
+            int rowInt = Int32.Parse(row);
+            int colInt = Int32.Parse(col);
+
+            var guessedCard = currentSession.Grid.Cards.Where(c => c.Row == rowInt && c.Column == colInt).FirstOrDefault();
+
+            if(guessedCard == null)
+            {
+                //invalid card; error
+                return;
+            }
+
+            if(guessedCard.Color == Color.Black)
+            {
+                currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, 
+                        StateTransition.TEAM_CHOSE_BLACK_CARD);
+
+                await Clients.All.SendAsync("GameLost", playerTeam.Color.ToString(), StaticDetails.ColorToHexDict[playerTeam.Color]);
+                await Clients.All.SendAsync("GameWon", StaticDetails.OppositeTeamsDict[playerTeam.Color].ToString(), 
+                    StaticDetails.ColorToHexDict[StaticDetails.OppositeTeamsDict[playerTeam.Color]]);
+            }
+
+            if(guessedCard.Color == playerTeam.Color)
+            {
+                //success!
+                playerTeam.NumberOfActiveCards--;
+                await Clients.All.SendAsync("CorrectCardGuess", playerTeam.Color, StaticDetails.ColorToHexDict[guessedCard.Color]);
+                //change turn to spymaster from opposite team
+            }
+
+            if(guessedCard.Color == Color.Neutral)
+            {
+                //neutral card
+                currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, StateTransition.NONE);
+                await Clients.All.SendAsync("NeutralCardGuess", playerTeam.Color, StaticDetails.ColorToHexDict[guessedCard.Color]);
+                //change turn to spymaster from opposite team
+            }
+
+            //if guessedCard == OtherTeamColor case
+            if(guessedCard.Color == StaticDetails.OppositeTeamsDict[playerTeam.Color])
+            {
+                var otherTeam = currentSession.Teams.Where(t => t.Color != playerTeam.Color).FirstOrDefault();
+
+                if(otherTeam != null)
+                {
+                    otherTeam.NumberOfActiveCards--;
+                }
+                    
+                if(otherTeam?.NumberOfActiveCards == 0)
+                {
+                    currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, 
+                        StateTransition.TEAM_GUESSED_ALL_OPPONENT_CARDS);
+
+                    //send signal to clients game is over
+                    return;
+                }
+
+                currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, StateTransition.NONE);
+
+                await Clients.All.SendAsync("EnemyCardGuess", playerTeam.Color,
+                    StaticDetails.ColorToHexDict[StaticDetails.OppositeTeamsDict[playerTeam.Color]]);
+            }
+
+            return;
         }
 
         public async Task StartGame(string sessionId)
@@ -252,7 +362,7 @@ namespace CodeNames.Hubs
 
             LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
 
-            if (currentSession == null || currentSession.SessionState != SessionState.Start)
+            if (currentSession == null || currentSession.SessionState != SessionState.START)
             {
                 //send signal the game couldn't be started
                 return;
@@ -260,9 +370,9 @@ namespace CodeNames.Hubs
 
             //TO DO: additional conditions: 3 players/team with each team having a spymaster
             //get user and verify if it's active (idle users should not see/submit the button
-            if(currentSession.SessionState == SessionState.Start)
+            if(currentSession.SessionState == SessionState.START)
             {
-                currentSession.SessionState = SessionState.SpymasterBlue;
+                currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, StateTransition.GAME_START);
                 spyMasterBlue = currentSession.Teams.Where(t => t.Color == Color.Blue).FirstOrDefault()?.SpyMaster;
             }
 

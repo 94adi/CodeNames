@@ -7,6 +7,7 @@ var colorToListDictionary = { Blue: "blue-team-ul", Red: "red-team-ul", Idle: "i
 var colorToBtnDictionary = { Blue: "blueTeamJoinBtn", Red: "redTeamJoinBtn" };
 var idlePlayerIdPrefix = "IdlePlayer-";
 var sessionId = null;
+var guessButtons = null;
 
 window.addEventListener('DOMContentLoaded', (event) => {
     connection.start().then(fullfilled, rejected);
@@ -25,6 +26,25 @@ window.addEventListener('DOMContentLoaded', (event) => {
         console.log("clicked start game");
         connection.invoke("StartGame", sessionId);
     });
+
+    guessButtons = document.querySelectorAll(".guess-btn");
+
+    guessButtons.forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+            
+            let divId = e.target.parentNode.parentNode.getAttribute('id');
+            let coordinates = divId.split('-');
+
+            let buttonText = e.target.getAttribute('value');
+
+            let row = coordinates[1];
+            let col = coordinates[2];
+
+            connection.invoke("PlayerSubmitGuess", sessionId, row, col);
+
+        });
+    });
+
 });
 
 connection.on("InvalidSession", () => {
@@ -87,6 +107,8 @@ connection.on("RemoveSpymasterButton", (teamColor) => {
 connection.on("ReceivedSpymasterClue", (clue) => {
     let word = clue.word;
     let noOfCards = clue.noOfCards;
+    $('#displayBanner').text('Word: ' + word + ' | ' + 'Number of targeted cards: ' + noOfCards);
+    //alert(word + " " + noOfCards);
 });
 
 connection.on("AwaitingSpymasterState", (color)=> {
@@ -104,7 +126,17 @@ connection.on("SpyMasterMode", (color) => {
     $("#clueSubmitForm").removeClass('d-none');
 });
 
+connection.on("ActivateCards", () => {
+    guessButtons.forEach((btn) => {
+        btn.classList.remove('disabled');
+        //btn.removeClass('disabled');
+        console.log("enabled buttons");
+    })
+});
+
+
 function fullfilled() {
+
     sessionId = $("#LiveSession_SessionId").val();
 
     connection.invoke("ReceiveSessionId", sessionId);
