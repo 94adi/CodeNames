@@ -22,5 +22,11 @@ namespace CodeNames
             { Color.Red, Color.Blue },
             { Color.Blue, Color.Red }
         };
+
+        public static Dictionary<Color, string> OppositeTeamsBackgroundColorDict = new()
+        {
+            { Color.Blue, ColorToHexDict[Color.BackgroundRed] },
+            { Color.Red,  ColorToHexDict[Color.BackgrounBlue] }
+        };
     }
 }

@@ -272,13 +272,18 @@ namespace CodeNames.Hubs
 
             SessionUser player = null;
             Team playerTeam = null;
+            Team otherTeam = null;
             foreach (var team in currentSession.Teams)
             {
-                player = team.Players.Where(p => p.Id == userId).FirstOrDefault();
-                if (player != null)
+                var currentPlayer = team.Players.Where(p => p.Id == userId).FirstOrDefault();
+                if (currentPlayer != null)
                 {
+                    player = currentPlayer;
                     playerTeam = team;
-                    break;
+                }
+                else
+                {
+                    otherTeam = team;
                 }
             }
 
@@ -287,6 +292,16 @@ namespace CodeNames.Hubs
                 return;
             }
 
+            bool isBlueTurn = playerTeam.Color == Color.Blue && currentSession.SessionState == SessionState.GUESS_BLUE;
+            bool isRedTurn = playerTeam.Color == Color.Red && currentSession.SessionState == SessionState.GUESS_RED;
+
+            if (!isBlueTurn && !isRedTurn)
+            {
+                return;
+            }
+
+            var teamIds = playerTeam.Players.Select(p => p.Id).ToArray();
+            var otherTeamIds = otherTeam.Players.Select(p => p.Id).ToArray();
 
             int rowInt = Int32.Parse(row);
             int colInt = Int32.Parse(col);
@@ -304,38 +319,42 @@ namespace CodeNames.Hubs
                 currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, 
                         StateTransition.TEAM_CHOSE_BLACK_CARD);
 
-                await Clients.All.SendAsync("GameLost", playerTeam.Color.ToString(), StaticDetails.ColorToHexDict[playerTeam.Color]);
-                await Clients.All.SendAsync("GameWon", StaticDetails.OppositeTeamsDict[playerTeam.Color].ToString(), 
+                await Clients.All.SendAsync("DeactivateCards");
+                await Clients.Users(teamIds).SendAsync("GameLost", playerTeam.Color.ToString(), StaticDetails.ColorToHexDict[playerTeam.Color]);
+                await Clients.Users(otherTeamIds).SendAsync("GameWon", StaticDetails.OppositeTeamsDict[playerTeam.Color].ToString(), 
                     StaticDetails.ColorToHexDict[StaticDetails.OppositeTeamsDict[playerTeam.Color]]);
             }
 
             if(guessedCard.Color == playerTeam.Color)
             {
                 //success!
+                //TO DO: init variable
                 playerTeam.NumberOfActiveCards--;
-                await Clients.All.SendAsync("CorrectCardGuess", playerTeam.Color, StaticDetails.ColorToHexDict[guessedCard.Color]);
+                await Clients.All.SendAsync("CardGuess", rowInt, colInt, StaticDetails.ColorToHexDict[guessedCard.Color]);
                 //change turn to spymaster from opposite team
+                //logic to decide if the user is allowed to guess another card or swith turn to opposite team spymaster
             }
 
             if(guessedCard.Color == Color.Neutral)
             {
                 //neutral card
                 currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, StateTransition.NONE);
-                await Clients.All.SendAsync("NeutralCardGuess", playerTeam.Color, StaticDetails.ColorToHexDict[guessedCard.Color]);
+                await Clients.All.SendAsync("CardGuess", rowInt, colInt, StaticDetails.ColorToHexDict[guessedCard.Color]);
                 //change turn to spymaster from opposite team
+
+                string backgroundColor = StaticDetails.OppositeTeamsBackgroundColorDict[playerTeam.Color];
+
+                await Clients.AllExcept(otherTeam.SpyMaster.ConnectionId).SendAsync("AwaitingSpymasterState", backgroundColor);
+
+                await Clients.User(otherTeam.SpyMaster.Id).SendAsync("SpyMasterMode", backgroundColor);
             }
 
             //if guessedCard == OtherTeamColor case
             if(guessedCard.Color == StaticDetails.OppositeTeamsDict[playerTeam.Color])
             {
-                var otherTeam = currentSession.Teams.Where(t => t.Color != playerTeam.Color).FirstOrDefault();
+                otherTeam.NumberOfActiveCards--;
 
-                if(otherTeam != null)
-                {
-                    otherTeam.NumberOfActiveCards--;
-                }
-                    
-                if(otherTeam?.NumberOfActiveCards == 0)
+                if(otherTeam.NumberOfActiveCards == 0)
                 {
                     currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, 
                         StateTransition.TEAM_GUESSED_ALL_OPPONENT_CARDS);
@@ -346,8 +365,15 @@ namespace CodeNames.Hubs
 
                 currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, StateTransition.NONE);
 
-                await Clients.All.SendAsync("EnemyCardGuess", playerTeam.Color,
-                    StaticDetails.ColorToHexDict[StaticDetails.OppositeTeamsDict[playerTeam.Color]]);
+                var cardColor = StaticDetails.ColorToHexDict[StaticDetails.OppositeTeamsDict[playerTeam.Color]];
+
+                await Clients.All.SendAsync("CardGuess", rowInt, colInt, cardColor);
+
+                string backgroundColor = StaticDetails.OppositeTeamsBackgroundColorDict[playerTeam.Color];
+
+                await Clients.AllExcept(otherTeam.SpyMaster.ConnectionId).SendAsync("AwaitingSpymasterState", backgroundColor);
+
+                await Clients.User(otherTeam.SpyMaster.Id).SendAsync("SpyMasterMode", backgroundColor);
             }
 
             return;

@@ -1,6 +1,6 @@
 ﻿var connection = new signalR.HubConnectionBuilder()
     .withUrl("/hubs/stateMachineHub")
-    //.withAutomaticReconnect([0, 1000, 5000, null])
+    .withAutomaticReconnect([0, 1000, 5000, null])
     .build();
 
 var colorToListDictionary = { Blue: "blue-team-ul", Red: "red-team-ul", Idle: "idle-players-ul" };
@@ -48,14 +48,10 @@ window.addEventListener('DOMContentLoaded', (event) => {
 });
 
 connection.on("InvalidSession", () => {
-    //redirect to invalid session page
     alert("Invalid session");
 });
 
 connection.on("GameSessionStart", () => {
-    //verify if user can join red/blue team
-    //make join team button visible
-    //document.getElementsByClassName('blue-team-join-div').
 
 });
 
@@ -108,14 +104,10 @@ connection.on("ReceivedSpymasterClue", (clue) => {
     let word = clue.word;
     let noOfCards = clue.noOfCards;
     $('#displayBanner').text('Word: ' + word + ' | ' + 'Number of targeted cards: ' + noOfCards);
-    //alert(word + " " + noOfCards);
 });
 
 connection.on("AwaitingSpymasterState", (color)=> {
-
-    $('.game-card').css('background-color', '#b7b0b0');
     $('#gamePanel').css('background-color', color);
-    //$('.guess-btn').addClass('disabled');
     $('#btnStartGame').hide();
 });
 
@@ -132,6 +124,33 @@ connection.on("ActivateCards", () => {
         //btn.removeClass('disabled');
         console.log("enabled buttons");
     })
+});
+
+connection.on("DeactivateCards", () => {
+    guessButtons.forEach((btn) => {
+        btn.classList.addClass('disabled');
+        btn.addClass('disabled');
+        //btn.removeClass('disabled');
+        console.log("enabled buttons");
+    })
+});
+
+connection.on("GameLost", () => {
+    $('#displayBanner').text('');
+    $('#displayBanner').text('Your team lost the game :(');
+});
+
+connection.on("GameWon", () => {
+    $('#displayBanner').text('');
+    $('#displayBanner').text('Your team won the game :)');
+});
+
+connection.on("CardGuess", (row, col, color) => {
+
+    let cardId = "cardAt-" + row + "-" + col;
+    document.getElementById(cardId).style.backgroundColor = color;
+    //$(cardId).css('bakcground-color', color);
+
 });
 
 
@@ -201,7 +220,6 @@ function updatePlayersList(type, playersList) {
 
 function clueSubmitFormHandler(data) {
 
-    //make a post to the server with the data
     let clue = data.Clue;
     let noCardsTarget = data.NoCardsTarget;
 
