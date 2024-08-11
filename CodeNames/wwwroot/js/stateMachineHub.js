@@ -118,6 +118,10 @@ connection.on("SpyMasterMode", (color) => {
     $("#clueSubmitForm").removeClass('d-none');
 });
 
+connection.on("HideSpymasterGuessForm", () => {
+    $("#clueSubmitForm").addClass('d-none');
+});
+
 connection.on("ActivateCards", () => {
     guessButtons.forEach((btn) => {
         btn.classList.remove('disabled');
@@ -130,8 +134,6 @@ connection.on("DeactivateCards", () => {
     guessButtons.forEach((btn) => {
         btn.classList.addClass('disabled');
         btn.addClass('disabled');
-        //btn.removeClass('disabled');
-        console.log("enabled buttons");
     })
 });
 

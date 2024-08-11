@@ -234,8 +234,8 @@ namespace CodeNames.Hubs
 
             bool isBlueTurn = currentSession.SessionState == SessionState.SPYMASTER_BLUE && teamColor == Color.Blue;
             bool isRedTurn = currentSession.SessionState == SessionState.SPYMASTER_RED && teamColor == Color.Red;
-            //DEBUG
-            if (true /*isBlueTurn || isRedTurn*/)
+
+            if (isBlueTurn || isRedTurn)
             {
                 int noCardsTargetInt = Int32.Parse(noCardsTarget);
 
@@ -346,6 +346,10 @@ namespace CodeNames.Hubs
 
                 await Clients.AllExcept(otherTeam.SpyMaster.ConnectionId).SendAsync("AwaitingSpymasterState", backgroundColor);
 
+                await Clients.User(playerTeam.SpyMaster.Id).SendAsync("HideSpymasterGuessForm");
+
+                await Clients.All.SendAsync("DeactivateCards");
+
                 await Clients.User(otherTeam.SpyMaster.Id).SendAsync("SpyMasterMode", backgroundColor);
             }
 
@@ -372,6 +376,10 @@ namespace CodeNames.Hubs
                 string backgroundColor = StaticDetails.OppositeTeamsBackgroundColorDict[playerTeam.Color];
 
                 await Clients.AllExcept(otherTeam.SpyMaster.ConnectionId).SendAsync("AwaitingSpymasterState", backgroundColor);
+
+                await Clients.All.SendAsync("DeactivateCards");
+
+                await Clients.User(playerTeam.SpyMaster.Id).SendAsync("HideSpymasterGuessForm");
 
                 await Clients.User(otherTeam.SpyMaster.Id).SendAsync("SpyMasterMode", backgroundColor);
             }
@@ -487,19 +495,19 @@ namespace CodeNames.Hubs
 
                 }
 
-                bool isIdlePLayersListEmpty = (currentSession.IdlePlayers != null && currentSession.IdlePlayers.Count == 0);
-                bool isActivePlayersListEMpty = (currentSession.PlayersList != null && currentSession.PlayersList.Count == 0);
+                //bool isIdlePLayersListEmpty = (currentSession.IdlePlayers != null && currentSession.IdlePlayers.Count == 0);
+                //bool isActivePlayersListEMpty = (currentSession.PlayersList != null && currentSession.PlayersList.Count == 0);
 
-                if(isIdlePLayersListEmpty && isActivePlayersListEMpty)
-                {
-                    var liveGameSession = _liveGameSessionService.GetByGameRoom(currentSession.GameRoom.Id);
+                //if(isIdlePLayersListEmpty && isActivePlayersListEMpty)
+                //{
+                //    var liveGameSession = _liveGameSessionService.GetByGameRoom(currentSession.GameRoom.Id);
 
-                    _liveGameSessionService.Remove(liveGameSession);
+                //    _liveGameSessionService.Remove(liveGameSession);
 
-                    GameSessionDictioary.RemoveSession(currentSession);
+                //    GameSessionDictioary.RemoveSession(currentSession);
 
-                    return base.OnDisconnectedAsync(exception);
-                }
+                //    return base.OnDisconnectedAsync(exception);
+                //}
 
             }
 
