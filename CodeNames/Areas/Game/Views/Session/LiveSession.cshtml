@@ -1,5 +1,16 @@
 ﻿@model CodeNames.Models.ViewModels.LiveSessionVM;
 
+@{
+    string joinRedTeamBtnClass = "row mt-5 Red-team-join-div";
+    string redSpymasterBtnClass = Model.InitialRun ? 
+    "row mt-5 Red-spymaster-join-div d-none" :
+    "row mt-5 Red-spymaster-join-div";
+
+    string joinBlueTeamBtnClass = "row mt-5 Blue-team-join-div";
+    string blueSpymasterBtnClass = Model.InitialRun ?
+    "row mt-5 Blue-spymaster-join-div d-none" :
+    "row mt-5 Blue-spymaster-join-div";
+}
 <h1 class="display-6 text-center" id="displayBanner"></h1>
 
 <input type="hidden" asp-for="@Model.LiveSession.SessionId" />
@@ -9,18 +20,26 @@
         <div class="col-lg-2 left-panel bg-secondary bg-gradient">
             <h1 class="text-white">Red Team</h1>
             <ul class="list-group red-team-ul bg-info bg-gradient" id="red-team-ul">
-                <li style="background-color:#ff8080" class="list-group-item text-center">TEst 1</li>
+                <li style="background-color:#ff8080" class="list-group-item text-center"></li>
             </ul>
-            <div class="row mt-5 Red-team-join-div">
-                <div class="col-12 d-flex justify-content-center">
-                    <a href="#" class="btn btn-primary" id="redTeamJoinBtn" data-value=@Color.Red>Join Red Team</a>
+            
+            @if (!Model.HideJoinRedTeamButton)
+            {
+                <div class="@joinRedTeamBtnClass">
+                    <div class="col-12 d-flex justify-content-center">
+                        <a href="#" class="btn btn-primary" id="redTeamJoinBtn" data-value=@Color.Red>Join Red Team</a>
+                    </div>
                 </div>
-            </div>
-            <div class="row mt-5 Red-spymaster-join-div d-none ">
-                <div class="col-12 d-flex justify-content-center">
-                    <a href="#" class="btn btn-primary" id="RedSpymasterBtn" data-value=@Color.Red>Become SpyMaster</a>
+            }
+
+            @if (!Model.HideRedSpymasterButton)
+            {
+                <div class="@redSpymasterBtnClass">
+                    <div class="col-12 d-flex justify-content-center">
+                        <a href="#" class="btn btn-primary" id="RedSpymasterBtn" data-value=@Color.Red>Become SpyMaster</a>
+                    </div>
                 </div>
-            </div>
+            }
 
             <div class="row mt-5">
                 <h1 class="text-white">Idle Players</h1>
@@ -28,20 +47,25 @@
                 </ul>
             </div>
         </div>
-        <div style="background-color:@ViewBag.ColorDictionary[Color.InitialNeutralBackground]" class="col-lg-8" id="gamePanel">
+
+        <div style="background-color:@ViewBag.ColorDictionary[Model.BackgroundColor]" class="col-lg-8" id="gamePanel">
             @for (int i = 0; i < Model.LiveSession.Grid.Rows; i++)
             {
                 <div class="row justify-content-between p-1 mt-3">
                     @for (int j = 0; j < Model.LiveSession.Grid.Columns; j++)
                     {
                         int rowIndex = i * Model.LiveSession.Grid.Columns;
-                        var blockColorEnum = Model.LiveSession.Grid.Cards[rowIndex + j].Color;
-                        string cardId = Model.LiveSession.Grid.Cards[rowIndex + j].CardId;
+                        var card = Model.LiveSession.Grid.Cards[rowIndex + j];
+                        var cardColor = card.IsRevealed ? 
+                            card.ColorHex : 
+                            ColorHelper.ColorToHexDict[Color.Neutral];
+                        string cardId = card.CardId;
+
                         <div class="col-2">
-                            <div class="card mb-3 game-card" id=@cardId style="max-width: 18rem; background-color:antiquewhite">
+                            <div class="card mb-3 game-card" id=@cardId style="max-width: 18rem; background-color:@cardColor">
                                 <div class="card-body text-center">
-                                    <h5 class="card-title">@Model.LiveSession.Grid.Cards[rowIndex + j].Content</h5>
-                                    <a href="#" class="btn btn-primary guess-btn disabled" value="@Model.LiveSession.Grid.Cards[rowIndex + j].Content">Guess</a>
+                                    <h5 class="card-title">@card.Content</h5>
+                                    <a href="#" class="btn btn-primary guess-btn disabled" value="@card.Content">Guess</a>
                                 </div>
                             </div>
                         </div>
@@ -76,18 +100,27 @@
         <div class="col-lg-2 right-panel bg-secondary bg-gradient">
             <h1 class="text-white">Blue Team</h1>
             <ul class="list-group bg-info bg-gradient" id="blue-team-ul">
-                    <li style="background-color:#72a5f7" class="list-group-item text-center">TEst 1</li>
-                </ul>
-            <div class="row mt-5 Blue-team-join-div">
-                <div class="col-12 d-flex justify-content-center">
-                    <a href="#" class="btn btn-primary" id="blueTeamJoinBtn" data-value=@Color.Blue>Join Blue Team</a>
+                    <li style="background-color:#72a5f7" class="list-group-item text-center"></li>
+            </ul>
+
+            @if (!Model.HideJoinBlueTeamButton)
+            {
+                <div class="@joinBlueTeamBtnClass">
+                    <div class="col-12 d-flex justify-content-center">
+                        <a href="#" class="btn btn-primary" id="blueTeamJoinBtn" data-value=@Color.Blue>Join Blue Team</a>
+                    </div>
                 </div>
-            </div>
-            <div class="row mt-5 Blue-spymaster-join-div d-none">
-                <div class="col-12 d-flex justify-content-center">
-                    <a href="#" class="btn btn-primary" id="BlueSpymasterBtn" data-value=@Color.Blue>Become SpyMaster</a>
+            }
+
+            @if (!Model.HideBlueSpymasterButton)
+            {
+                <div class="@blueSpymasterBtnClass">
+                    <div class="col-12 d-flex justify-content-center">
+                        <a href="#" class="btn btn-primary" id="BlueSpymasterBtn" data-value=@Color.Blue>Become SpyMaster</a>
+                    </div>
                 </div>
-            </div>
+            }
+
         </div>
     </div>
     <div class="row">

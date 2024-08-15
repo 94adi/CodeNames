@@ -1,20 +1,3 @@
-using CodeNames;
-using CodeNames.CodeNames.Core.Services.GameRoomService;
-using CodeNames.CodeNames.Core.Services.GridGenerator;
-using CodeNames.Core.Services.LiveGameSessionService;
-using CodeNames.Core.Services.StateMachineService;
-using CodeNames.Core.Services.UserService;
-using CodeNames.DAL.DALAbstraction;
-using CodeNames.DAL.Repository;
-using CodeNames.Data;
-using CodeNames.Hubs;
-using CodeNames.Models;
-using CodeNames.Repository;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using NuGet.Protocol.Core.Types;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -73,7 +56,6 @@ app.MapControllerRoute(
 
 app.MapRazorPages();
 
-app.MapHub<TestHub>("/hubs/testHub");
 app.MapHub<StateMachineHub>("/hubs/stateMachineHub");
 //app.MapHub<LiveSessionHub>("/hubs/liveSession");
 

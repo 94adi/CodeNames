@@ -1,0 +1,34 @@
+﻿StateMachineHub Interface:
+
+ReceiveSessionId(sessionId: string)
+
+-called from by the client after live game page is loaded
+-registers the user in the session and sends refresh updates to other clients
+
+UserJoinedTeam(sessionId, teamColor)
+
+-adds player to selected team
+-removes player from IdlePlayers list and adds it to ActivePlayers list
+-sends refresh signals to the other clients to update team players list
+-changes "Join Team" button to "Become spymaster button" (provided a spymaster hasn't been chosen yet)
+
+TransformUserToSpymaster(sessionId, teamColor)
+
+-changes user to spymaster (provided the team doesn't have a spymaster)
+-reveals the cards only for the spymaster user
+-removes spymaster button from interface
+
+SpymasterSubmitGuess(sessionId, clue, noCardsTarget)
+
+-submits spymaster guess to everybody
+-activates cards (for team members) to guess them based on the clue
+
+PlayerSubmitGuess
+
+-if card color == BLACK: game over, the other team wins
+
+-if card color == TeamColor: decrement number of active cards, update UI
+
+if card color == Neutral:
+
+if card == oposite TeamColor: 

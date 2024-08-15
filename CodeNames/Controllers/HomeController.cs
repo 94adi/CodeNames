@@ -10,18 +10,14 @@ namespace CodeNames.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
-        private readonly IGridGenerator _gridGeneratorService;
 
-        public HomeController(ILogger<HomeController> logger,
-            IGridGenerator gridGeneratorService)
+        public HomeController(ILogger<HomeController> logger)
         {
             _logger = logger;
-            _gridGeneratorService = gridGeneratorService;
         }
 
         public IActionResult Index()
         {
-            _gridGeneratorService.Generate();
             return View();
         }
 

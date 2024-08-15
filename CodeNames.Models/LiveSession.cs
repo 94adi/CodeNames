@@ -12,10 +12,14 @@
         public Grid Grid { get; set; }
         public List<List<Card>> GridMatrix { get; set; }
         public Clue Clue { get; set; }
+        public Color ActiveTeam { get; set; }
+        public IDictionary<Color, int> NumberOfTeamActiveCards { get; set; }
         
         public LiveSession()
         {
             SessionId = Guid.NewGuid();
+            ActiveTeam = Color.Neutral;
+            NumberOfTeamActiveCards = new Dictionary<Color, int>();
         }
     }
 }

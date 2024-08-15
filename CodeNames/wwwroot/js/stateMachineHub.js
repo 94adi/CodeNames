@@ -9,7 +9,7 @@ var idlePlayerIdPrefix = "IdlePlayer-";
 var sessionId = null;
 var guessButtons = null;
 
-window.addEventListener('DOMContentLoaded', (event) => {
+window.addEventListener('load', (event) => {
     connection.start().then(fullfilled, rejected);
 
     document.getElementById("clueSubmitForm").addEventListener("submit", (e) => {
@@ -67,19 +67,32 @@ connection.on("RefreshTeamPlayer", (teamColor, selectedTeamJson) => {
     updatePlayersList(teamColor, selectedTeam);
 });
 
-connection.on("ChangeJoinButtonToSpymaster", (btnColor) => {
-
+connection.on("ChangeJoinButtonToSpymaster", (btnColor) =>
+{
     let spyMasterBtnId = btnColor + 'SpymasterBtn';
-    let spyMasterBtnDiv = btnColor + '-spymaster-join-div';
-    $('.' + spyMasterBtnDiv).removeClass('d-none');
-    document.getElementById(spyMasterBtnId).addEventListener("click", function () {
-        $('.' + spyMasterBtnDiv).addClass('d-none');
-        //handle user registration to be spymaster
-        connection.invoke("TransformUserToSpymaster", sessionId, btnColor);
-    });
+
+    toggleSpymasterButton(btnColor, true);
+    toggleJoinTeamButton(false);
+    addSpymasterHandlerLogic(spyMasterBtnId, btnColor);
 });
 
-connection.on("ChangeViewToSpymaster", (cardsToReveal) => {
+connection.on("AddSpymasterHandlerToBtn", (btnColor) => {
+    let spyMasterBtnId = btnColor + 'SpymasterBtn';
+    addSpymasterHandlerLogic(spyMasterBtnId, btnColor);
+});
+
+connection.on("HideSpymasterButton", (btnColor) => {
+    toggleSpymasterButton(btnColor, false);
+});
+
+connection.on("HideJoinTeamButton", (btnColor) => {
+
+    toggleJoinTeamButton(false);
+
+});
+
+connection.on("ChangeViewToSpymaster", (cardsToReveal, teamColor) =>
+{
     let cardsToRevealArray = JSON.parse(cardsToReveal);
     let isArrayEmpty = (!cardsToRevealArray || (!Array.isArray(cardsToRevealArray)) || cardsToRevealArray.length === 0);
 
@@ -90,15 +103,14 @@ connection.on("ChangeViewToSpymaster", (cardsToReveal) => {
         $(cardId).css("background-color", v.Color);
     });
 
-    //remove become spymaster button for team
-
+    toggleSpymasterButton(teamColor, false);
 });
 
-connection.on("RemoveSpymasterButton", (teamColor) => {
-    let id = "#" + teamColor + "SpymasterBtn";
-    console.log(id);
-    $(id).hide();
-});
+//connection.on("RemoveSpymasterButton", (teamColor) => {
+//    let id = "#" + teamColor + "SpymasterBtn";
+//    console.log(id);
+//    $(id).hide();
+//});
 
 connection.on("ReceivedSpymasterClue", (clue) => {
     let word = clue.word;
@@ -160,6 +172,8 @@ function fullfilled() {
 
     sessionId = $("#LiveSession_SessionId").val();
 
+    console.log(sessionId);
+
     connection.invoke("ReceiveSessionId", sessionId);
 
     let blueTeamJoinBtn = $("#blueTeamJoinBtn");
@@ -168,22 +182,48 @@ function fullfilled() {
     blueTeamJoinBtn.on("click", function (e) {
         e.preventDefault();
         let color = blueTeamJoinBtn.attr("data-value");
-        $('.Blue-team-join-div').hide();
-        $('.Red-team-join-div').hide();
+        toggleJoinTeamButton(false);
         connection.invoke("UserJoinedTeam", sessionId, color);
     });
 
     redTeamJoinBtn.on("click", function (e) {
         e.preventDefault();
         let color = redTeamJoinBtn.attr("data-value");
-        $('.Blue-team-join-div').hide();
-        $('.Red-team-join-div').hide();
+        toggleJoinTeamButton(false);
         connection.invoke("UserJoinedTeam", sessionId, color);
     });
 }
 
 function rejected() {
     console.log("failed to connect");
+}
+
+function toggleSpymasterButton(btnColor, show = false) {
+    let spyMasterBtnDiv = btnColor + '-spymaster-join-div';
+
+    if (show) {
+        $('.' + spyMasterBtnDiv).removeClass('d-none');
+    }
+    else {
+        $('.' + spyMasterBtnDiv).addClass('d-none');
+    }
+}
+
+function toggleJoinTeamButton(btnColor, show = false)
+{
+    let joinRedTeam = $('.Red-team-join-div');
+    let joinBlueTeam = $('.Blue-team-join-div');
+
+    if (show)
+    {
+        joinRedTeam.removeClass('d-none');
+        joinBlueTeam.removeClass('d-none');
+    }
+    else
+    {
+        joinRedTeam.addClass('d-none');
+        joinBlueTeam.addClass('d-none');
+    }
 }
 
 function removePlayerFromIdleList(playerId) {
@@ -228,4 +268,11 @@ function clueSubmitFormHandler(data) {
     connection.invoke("SpymasterSubmitGuess", sessionId, clue, noCardsTarget);
 }
 
+function addSpymasterHandlerLogic(btnId, btnColor)
+{
+    document.getElementById(btnId).addEventListener("click", function () {
+        toggleSpymasterButton(btnColor, false);
 
+        connection.invoke("TransformUserToSpymaster", sessionId, btnColor);
+    });
+}

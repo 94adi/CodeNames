@@ -7,8 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CodeNames.BuildingBlocks\CodeNames.BuildingBlocks.csproj" />
-    <ProjectReference Include="..\CodeNames.DAL\CodeNames.DAL.csproj" />
     <ProjectReference Include="..\CodeNames.Models\CodeNames.Models.csproj" />
   </ItemGroup>
 

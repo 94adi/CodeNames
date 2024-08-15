@@ -37,6 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CodeNames.BuildingBlocks\CodeNames.BuildingBlocks.csproj" />
     <ProjectReference Include="..\CodeNames.Core\CodeNames.Core.csproj" />
     <ProjectReference Include="..\CodeNames.Models\CodeNames.Models.csproj" />
   </ItemGroup>
