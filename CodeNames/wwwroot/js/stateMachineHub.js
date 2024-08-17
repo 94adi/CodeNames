@@ -131,7 +131,10 @@ connection.on("SpyMasterMode", (color) => {
 });
 
 connection.on("HideSpymasterGuessForm", () => {
+    console.log("reset spymaster form");
+    document.getElementById("clueSubmitForm").reset();
     $("#clueSubmitForm").addClass('d-none');
+
 });
 
 connection.on("ActivateCards", () => {
@@ -145,7 +148,7 @@ connection.on("ActivateCards", () => {
 connection.on("DeactivateCards", () => {
     guessButtons.forEach((btn) => {
         btn.classList.addClass('disabled');
-        btn.addClass('disabled');
+        //btn.addClass('disabled');
     })
 });
 

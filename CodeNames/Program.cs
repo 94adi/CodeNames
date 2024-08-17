@@ -10,9 +10,21 @@ builder.Services.Configure<GameParametersOptions>(builder.Configuration.GetSecti
 
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(dbConnectionString));
 
-builder.Services.AddDefaultIdentity<IdentityUser>(
-    opt => opt.SignIn.RequireConfirmedAccount = true
-    ).AddEntityFrameworkStores<AppDbContext>();
+builder.Services
+    .AddDefaultIdentity<IdentityUser>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.Configure<IdentityOptions>(opt =>
+{
+    opt.Password.RequireDigit = false;
+    opt.Password.RequireUppercase = false;
+    opt.Password.RequireLowercase = false;
+    opt.Password.RequireNonAlphanumeric = false;
+    opt.Lockout.MaxFailedAccessAttempts = 3;
+    opt.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    opt.SignIn.RequireConfirmedEmail = false;
+});
 
 builder.Services.AddSignalR();
     //.AddAzureSignalR(connectionAzureSignalR);

@@ -9,5 +9,7 @@ namespace CodeNames.CodeNames.Core.Services.GameRoomService
         bool IsGameRoomValid(string gameRoom);
 
         GameRoom GetRoomByName(string name);
+
+        IEnumerable<GameRoom> GetGameRooms();
     }
 }
