@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using System.Diagnostics;
 
 namespace CodeNames.Controllers
 {
+    [AllowAnonymous]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;

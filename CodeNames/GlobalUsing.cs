@@ -17,3 +17,5 @@ global using CodeNames.Data;
 global using CodeNames.Repository;
 global using Microsoft.AspNetCore.Identity;
 global using Microsoft.EntityFrameworkCore;
+global using CodeNames.BuildingBlocks;
+global using Microsoft.AspNetCore.Authorization;

@@ -2,6 +2,7 @@
 
 //TO DO:
 //Instead of using global static variable, change with a nosql persistance layer
+[Authorize]
 public class StateMachineHub : Hub
 {
     //private LiveSession _currentSession;

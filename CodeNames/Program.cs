@@ -1,3 +1,6 @@
+using CodeNames.Core.Services.DatabaseService;
+using CodeNames.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -8,12 +11,14 @@ var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConne
 builder.Services.Configure<GameParametersOptions>(builder.Configuration.GetSection("GameVariables"));
 
 
-builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(dbConnectionString));
+builder.Services.AddDbContext<AppDbContext>(opt => 
+    opt.UseSqlServer(dbConnectionString));
 
 builder.Services
-    .AddDefaultIdentity<IdentityUser>()
+    .AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddDefaultUI();
 
 builder.Services.Configure<IdentityOptions>(opt =>
 {
@@ -37,8 +42,12 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILiveGameSessionRepository, LiveGameSessionRepository>();
 builder.Services.AddScoped<ILiveGameSessionService, LiveGameSessionService>();
 builder.Services.AddScoped<IStateMachineService, StateMachineService>();
+builder.Services.AddScoped<ISeedDataService, SeedDataService>();
+builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
+
+builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
@@ -58,6 +67,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+
 app.MapControllerRoute(
     name: "MyArea",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
@@ -66,9 +76,12 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+app.MapHub<StateMachineHub>("/hubs/stateMachineHub");
+
+//map razor pages for Identity Area
 app.MapRazorPages();
 
-app.MapHub<StateMachineHub>("/hubs/stateMachineHub");
-//app.MapHub<LiveSessionHub>("/hubs/liveSession");
+//fire and forget
+app.SeedData().GetAwaiter();
 
 app.Run();

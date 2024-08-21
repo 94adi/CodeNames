@@ -113,6 +113,5 @@ namespace CodeNames.Repository
         {
             _db.SaveChanges();
         }
-
     }
 }

@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 
 namespace CodeNames.Areas.Game.Controllers;
 
 [Area("Game")]
-//[Authorize]
+[Authorize]
 public class SessionController : Controller
 {
     private readonly IGridGenerator _gridGeneratorService;
@@ -102,6 +103,8 @@ public class SessionController : Controller
         string test = "tGgesgegse";
         return Ok();
     }
+
+    [AllowAnonymous]
     public IActionResult AccessForbidden(string gameRoom)
     {
         ViewBag.GameRoomName = gameRoom;
