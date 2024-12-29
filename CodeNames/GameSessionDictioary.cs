@@ -87,4 +87,20 @@ public static class GameSessionDictioary
             _sessionDictionary.Remove(session.SessionId);
         }
     }
+
+    public static void RemoveUserFromSesion(string userId, string connectionId, string sessionId)
+    {
+        lock (_lock)
+        {
+            if (String.IsNullOrEmpty(userId) || String.IsNullOrEmpty(connectionId) || String.IsNullOrEmpty(sessionId))
+                throw new ArgumentNullException("Bad argument");
+
+            var userKey = userId + ":" + connectionId;
+
+            if (_liveUsersSession.ContainsKey(userKey))
+            {
+                _liveUsersSession.Remove(userKey);
+            }
+        }
+    }
 }

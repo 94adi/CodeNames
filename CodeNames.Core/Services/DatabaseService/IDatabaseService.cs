@@ -3,4 +3,6 @@
 public interface IDatabaseService
 {
     void RunMigrations();
+
+    void DeleteDatabase();
 }

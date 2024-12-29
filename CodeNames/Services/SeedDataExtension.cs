@@ -13,6 +13,8 @@ public static class SeedDataExtension
                 var databaseService = scope.ServiceProvider.GetService<IDatabaseService>(); 
                 var seedService = scope.ServiceProvider.GetService<ISeedDataService>();
 
+
+                databaseService.DeleteDatabase();
                 databaseService.RunMigrations();
                 await seedService.Seed();
             }

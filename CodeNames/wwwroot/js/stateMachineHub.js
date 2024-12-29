@@ -155,11 +155,13 @@ connection.on("DeactivateCards", () => {
 connection.on("GameLost", () => {
     $('#displayBanner').text('');
     $('#displayBanner').text('Your team lost the game :(');
+    alert('Your team lost the game :(');
 });
 
 connection.on("GameWon", () => {
     $('#displayBanner').text('');
     $('#displayBanner').text('Your team won the game :)');
+    alert('Your team won the game :)');
 });
 
 connection.on("CardGuess", (row, col, color) => {
@@ -174,8 +176,6 @@ connection.on("CardGuess", (row, col, color) => {
 function fullfilled() {
 
     sessionId = $("#LiveSession_SessionId").val();
-
-    console.log(sessionId);
 
     connection.invoke("ReceiveSessionId", sessionId);
 
@@ -254,11 +254,12 @@ function updatePlayersList(type, playersList) {
 
     ul.innerHTML = null;
     playersList.forEach((item, index) => {
+        console.log("team color: " + item.TeamColor);
         let i = index;
         let li = document.createElement("li");
-        li.appendChild(document.createTextNode("#" + (++i) + " " + item.Name));
+        li.appendChild(document.createTextNode("#" + (++i) + " " + item.Name + "(" + item.UserStatus + ")"));
         li.setAttribute('class', 'list-group-item text-center');
-        li.setAttribute('style', 'background-color:#E3963E'); //TO DO: use bg color based on team color!
+        li.setAttribute('style', 'background-color:' + item.TeamColor);
         ul.appendChild(li);
     });
 }

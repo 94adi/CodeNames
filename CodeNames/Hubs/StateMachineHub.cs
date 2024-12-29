@@ -1,4 +1,6 @@
-﻿namespace CodeNames.Hubs;
+﻿using CodeNames.Models;
+
+namespace CodeNames.Hubs;
 
 //TO DO:
 //Instead of using global static variable, change with a nosql persistance layer
@@ -48,7 +50,13 @@ public class StateMachineHub : Hub
 
         var userName = _userService.GetUserName(userId);
 
-        var newUser = new SessionUser { Id = userId, Name = userName, ConnectionId = connectionId };
+        var newUser = new SessionUser { 
+            Id = userId, 
+            Name = userName, 
+            ConnectionId = connectionId,
+            UserStatus = UserStatus.Active,
+            TeamColor = Color.Neutral
+        };
 
         var player = currentSession.PlayersList.Where(p => p.Id == newUser.Id).FirstOrDefault();
         bool isPlayerAlreadyJoined = player != null ? true : false;
@@ -58,23 +66,17 @@ public class StateMachineHub : Hub
             //TO DO CHANGES AFTER CONTROLLER
             player.ConnectionId = newUser.ConnectionId;
 
+            GameSessionDictioary.AddUserToSession(player.Id, 
+                player.ConnectionId, 
+                currentSession.SessionId.ToString());
+
+            player.UserStatus = UserStatus.Active;
+
             if((!player.IsSpymaster) && currentSession.SessionState == SessionState.START)
             {
-                await Clients.User(userId).SendAsync("AddSpymasterHandlerToBtn", player.TeamColor);
+                await Clients.User(userId).SendAsync("ChangeJoinButtonToSpymaster", player.TeamColor.ToString());
+                //await Clients.User(userId).SendAsync("AddSpymasterHandlerToBtn", player.TeamColor.ToString());
             }
-            //bool isPlayerJoinedAndNotSpymaster = (player.IsSpymaster == false) &&
-            //    (player.TeamColor == Color.Red ||
-            //    player.TeamColor == Color.Blue) &&
-            //    (currentSession.SessionState == SessionState.START);
-
-            //if (isPlayerJoinedAndNotSpymaster)
-            //{
-            //    await Clients.User(userId).SendAsync("ChangeJoinButtonToSpymaster", player.TeamColor);
-            //}
-            //if (player.IsSpymaster)
-            //{
-            //    await Clients.User(userId).SendAsync("ChangeJoinButtonToSpymaster", player.TeamColor);
-            //}
 
         }
         else if (currentSession.IdlePlayers.Where(u => u.Id == newUser.Id).FirstOrDefault() == null)
@@ -82,7 +84,6 @@ public class StateMachineHub : Hub
             currentSession.IdlePlayers.Add(newUser);
             GameSessionDictioary.AddUserToSession(userId, connectionId, currentSession.SessionId.ToString());
         }
-
 
         //TO DO: wrap code in method call
         if (currentSession.SessionState == SessionState.PENDING)
@@ -97,8 +98,7 @@ public class StateMachineHub : Hub
         foreach(var team in currentSession.Teams)
         {
             await Clients.All.SendAsync("RefreshTeamPlayer", team.Color.ToString(), team.Players.ToJson());
-        }
-        
+        }  
     }
 
     public async Task UserJoinedTeam(string sessionId, string teamColor)
@@ -486,56 +486,48 @@ public class StateMachineHub : Hub
     public override Task OnDisconnectedAsync(Exception? exception)
     {
 
-        //var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        //if(userId == null)
-        //{
-        //    return base.OnDisconnectedAsync(exception);
-        //}
+        if (userId == null)
+        {
+            return base.OnDisconnectedAsync(exception);
+        }
 
-        //var connectionId = Context.ConnectionId;
+        var connectionId = Context.ConnectionId;
 
-        //if (_queuedPlayers != null && _queuedPlayers.Count > 0)
-        //{
-        //    var queuedUser = _queuedPlayers.Where(u => u.Id == userId).FirstOrDefault();
-        //    if(queuedUser != null) 
-        //        _queuedPlayers.Remove(queuedUser);
-        //}
+        var currentSession = GameSessionDictioary.GetUserSession(userId, connectionId);
 
-        //var currentSession = GameSessionDictioary.GetUserSession(userId, connectionId);
+        if (currentSession != null)
+        {
+            var idlePlayer = currentSession.IdlePlayers.Where(u => u.Id == userId).FirstOrDefault();
+            var activePlayer = currentSession.PlayersList.Where(u => u.Id == userId).FirstOrDefault();
 
-        //if(currentSession != null)
-        //{
-        //    var idlePlayer = currentSession.IdlePlayers.Where(u => u.Id == userId).FirstOrDefault();
-        //    var activePlayer = currentSession.PlayersList.Where(u => u.Id == userId).FirstOrDefault();
+            GameSessionDictioary.RemoveUserFromSesion(userId, 
+                connectionId, 
+                currentSession.SessionId.ToString());
 
-        //    if (idlePlayer != null)
-        //    {
-        //        currentSession.IdlePlayers.Remove(idlePlayer);
-        //        Clients.All.SendAsync("RefreshIdlePlayersList", currentSession?.IdlePlayers.ToJson());
-        //    }
+            if (idlePlayer != null)
+            {
+                currentSession.IdlePlayers.Remove(idlePlayer);
+                Clients.All.SendAsync("RefreshIdlePlayersList", currentSession?.IdlePlayers.ToJson());
+            }
 
-        //    if (activePlayer != null)
-        //    {
-        //        currentSession.PlayersList.Remove(activePlayer);
+            if (activePlayer != null)
+            {
+                activePlayer.UserStatus = UserStatus.Inactive;
+                //currentSession.PlayersList.Remove(activePlayer);
 
-        //        foreach (var team in currentSession.Teams)
-        //        {
-        //            if (team.Players != null && team.Players.Count > 0)
-        //            {
-        //                var teamPlayer = team.Players?.Where(u => u.Id == userId).FirstOrDefault();
-
-        //                if (teamPlayer != null)
-        //                {
-        //                    team.Players?.Remove(teamPlayer);
-        //                    Clients.All.SendAsync("RefreshTeamPlayer", team.Color.ToString(), team.Players.ToJson());
-        //                    //return base.OnDisconnectedAsync(exception);
-        //                }
-        //            }
-        //        }
-
-        //    }
-        //}
+                foreach (var team in currentSession.Teams)
+                {
+                    if (team.Players != null && team.Players.Count > 0)
+                    {
+                        Clients.All.SendAsync("RefreshTeamPlayer", 
+                            team.Color.ToString(), 
+                            team.Players.ToJson());
+                    }
+                }
+            }
+        }
         //tag user as inactive in UI
         return base.OnDisconnectedAsync(exception);
     }

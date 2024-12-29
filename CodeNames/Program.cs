@@ -31,7 +31,14 @@ builder.Services.Configure<IdentityOptions>(opt =>
     opt.SignIn.RequireConfirmedEmail = false;
 });
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(
+    options =>
+    {
+        //FOR DEBUG
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(300);  
+        options.KeepAliveInterval = TimeSpan.FromSeconds(15);     
+    }
+    );
     //.AddAzureSignalR(connectionAzureSignalR);
 
 builder.Services.AddScoped<IGridGenerator, GridGenerator>();

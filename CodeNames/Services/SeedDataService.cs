@@ -1,15 +1,20 @@
-﻿namespace CodeNames.Services;
+﻿using CodeNames.Models;
+
+namespace CodeNames.Services;
 
 public class SeedDataService : ISeedDataService
 {
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly IGameRoomRepository _gameRoomRepo;
 
     public SeedDataService(RoleManager<IdentityRole> roleManager,
-        UserManager<IdentityUser> userManager)
+        UserManager<IdentityUser> userManager,
+        IGameRoomRepository gameRoomRepo)
     {
         _roleManager = roleManager;
         _userManager = userManager;
+        _gameRoomRepo = gameRoomRepo;
     }
 
     public async Task Seed()
@@ -38,9 +43,47 @@ public class SeedDataService : ISeedDataService
                 UserName = "user@user.com",
                 Email = "user@user.com",
                 EmailConfirmed = true
+            },
+            new IdentityUser
+            {
+                UserName = "test1@test.com",
+                Email = "test1@test.com",
+                EmailConfirmed = true
+            },
+            new IdentityUser
+            {
+                UserName = "test2@test.com",
+                Email = "test2@test.com",
+                EmailConfirmed = true
+            },
+            new IdentityUser
+            {
+                UserName = "test3@test.com",
+                Email = "test3@test.com",
+                EmailConfirmed = true
             }
 
         }, isAdmin: false);
+
+        _AddGameRooms(new List<GameRoom> { new GameRoom
+        {
+            Name = "Adi's room",
+            InvitationCode =  Guid.NewGuid(),
+            MaxNoPlayers = 20
+        }
+        });
+    }
+
+    private void _AddGameRooms(IEnumerable<GameRoom> gameRooms)
+    {
+        if(gameRooms != null && gameRooms.Count() > 0)
+        {
+            foreach (var gameRoom in gameRooms)
+            {
+                _gameRoomRepo.Add(gameRoom);
+            }
+            _gameRoomRepo.Save();
+        }
     }
 
     private async Task _AddSeedRoles(IEnumerable<IdentityRole> roles)

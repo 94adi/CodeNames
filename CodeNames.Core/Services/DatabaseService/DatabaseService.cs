@@ -12,6 +12,8 @@ public class DatabaseService : IDatabaseService
         _context = context;
     }
 
+    public void DeleteDatabase() => _context.Database.EnsureDeleted();
+
     public void RunMigrations() => _context.Database.Migrate();
 
 }
