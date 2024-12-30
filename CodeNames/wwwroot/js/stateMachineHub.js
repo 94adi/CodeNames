@@ -164,6 +164,12 @@ connection.on("GameWon", () => {
     alert('Your team won the game :)');
 });
 
+connection.on("GameFailureSignal", () => {
+    $('#displayBanner').text('');
+    $('#displayBanner').text('GAME FAILURE');
+    alert('Game ended because one of the spymaster left the game :(');
+})
+
 connection.on("CardGuess", (row, col, color) => {
 
     let cardId = "cardAt-" + row + "-" + col;

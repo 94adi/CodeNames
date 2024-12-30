@@ -48,6 +48,9 @@ public class StateMachineHub : Hub
             return;
         }
 
+        if (currentSession.SessionState == SessionState.PENDING)
+            currentSession.SessionState = SessionState.START;
+
         var userName = _userService.GetUserName(userId);
 
         var newUser = new SessionUser { 
@@ -77,6 +80,10 @@ public class StateMachineHub : Hub
                 await Clients.User(userId).SendAsync("ChangeJoinButtonToSpymaster", player.TeamColor.ToString());
                 //await Clients.User(userId).SendAsync("AddSpymasterHandlerToBtn", player.TeamColor.ToString());
             }
+            else if (player.IsSpymaster && currentSession.SessionState == SessionState.START)
+            {
+                await this._TransformReturningUserToSpymaster(sessionId, player);
+            }
 
         }
         else if (currentSession.IdlePlayers.Where(u => u.Id == newUser.Id).FirstOrDefault() == null)
@@ -84,10 +91,6 @@ public class StateMachineHub : Hub
             currentSession.IdlePlayers.Add(newUser);
             GameSessionDictioary.AddUserToSession(userId, connectionId, currentSession.SessionId.ToString());
         }
-
-        //TO DO: wrap code in method call
-        if (currentSession.SessionState == SessionState.PENDING)
-            currentSession.SessionState = SessionState.START;
 
         var idlePlayersJson = currentSession.IdlePlayers.ToJson();
 
@@ -465,6 +468,48 @@ public class StateMachineHub : Hub
         await Clients.User(spyMasterBlue.Id).SendAsync("SpyMasterMode", backgroundColor);
     }
 
+    private async Task _TransformReturningUserToSpymaster(string sessionId, SessionUser player)
+    {
+        if ((player == null) || (!player.IsSpymaster))
+        {
+            return;
+        }
+
+        var sessionGuidId = new Guid(sessionId);
+
+        LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
+
+        if (currentSession == null || currentSession.SessionState != SessionState.START)
+        {
+            //send signal to user couldn't be added
+            return;
+        }
+
+        var team = currentSession.Teams.Where(t => t.Color == player.TeamColor).FirstOrDefault();
+
+        if (team == null || (team.SpyMaster.Id != player.Id))
+        {
+            return;
+        }
+
+        var spymasterSecret = currentSession.Grid.Cards.Where(c => c.Color != Color.Neutral)
+                .Select(c => new RevealedCard
+                {
+                    CardId = c.CardId,
+                    //TO DO: use the color dictionary instead for hex values
+                    //Add text color value as well
+                    Color = c.Color.ToString(),
+                    Content = c.Content
+                }).ToArray().ToJson();
+
+        var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        //the spymaster can see the color of all cards + enter data in the clue form
+        await Clients.User(userId).SendAsync("ChangeViewToSpymaster", spymasterSecret, player.TeamColor.ToString());
+
+        await Clients.AllExcept(player.ConnectionId).SendAsync("HideSpymasterButton", player.TeamColor.ToString());
+    }
+
     public override Task OnConnectedAsync()
     {
         //var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -512,7 +557,16 @@ public class StateMachineHub : Hub
                 Clients.All.SendAsync("RefreshIdlePlayersList", currentSession?.IdlePlayers.ToJson());
             }
 
-            if (activePlayer != null)
+            else if(activePlayer != null && 
+                activePlayer.IsSpymaster && 
+                GameSessionHelper.IsGameOngoing(currentSession))
+            {
+                currentSession.SessionState = SessionState.FAILURE;
+                //send failure signal
+                Clients.All.SendAsync("GameFailureSignal").GetAwaiter().GetResult();
+            }
+
+            else if (activePlayer != null)
             {
                 activePlayer.UserStatus = UserStatus.Inactive;
                 //currentSession.PlayersList.Remove(activePlayer);
@@ -526,6 +580,7 @@ public class StateMachineHub : Hub
                             team.Players.ToJson());
                     }
                 }
+                
             }
         }
         //tag user as inactive in UI
