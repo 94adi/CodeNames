@@ -12,66 +12,78 @@ namespace CodeNames.Core.Services.StateMachineService
             switch (transition)
             {
                 case StateTransition.NONE:
+                {
+                    if (currentState == SessionState.PENDING)
                     {
-                        if (currentState == SessionState.PENDING)
-                        {
-                            nextState = SessionState.INIT;
-                        }
-                        else if (currentState == SessionState.INIT)
-                        {
-                            nextState = SessionState.START;
-                        }
-                        else if (currentState == SessionState.SPYMASTER_BLUE)
-                        {
-                            nextState = SessionState.GUESS_BLUE;
-                        }
-                        else if (currentState == SessionState.GUESS_BLUE)
-                        {
-                            nextState = SessionState.SPYMASTER_RED;
-                        }
-                        else if (currentState == SessionState.SPYMASTER_RED)
-                        {
-                            nextState = SessionState.GUESS_RED;
-                        }
-                        else if (currentState == SessionState.GUESS_RED)
-                        {
-                            nextState = SessionState.SPYMASTER_BLUE;
-                        }
-                        break;
+                        nextState = SessionState.INIT;
                     }
+                    else if (currentState == SessionState.INIT)
+                    {
+                        nextState = SessionState.START;
+                    }
+                    else if (currentState == SessionState.SPYMASTER_BLUE)
+                    {
+                        nextState = SessionState.GUESS_BLUE;
+                    }
+                    else if (currentState == SessionState.GUESS_BLUE)
+                    {
+                        nextState = SessionState.SPYMASTER_RED;
+                    }
+                    else if (currentState == SessionState.SPYMASTER_RED)
+                    {
+                        nextState = SessionState.GUESS_RED;
+                    }
+                    else if (currentState == SessionState.GUESS_RED)
+                    {
+                        nextState = SessionState.SPYMASTER_BLUE;
+                    }
+                    break;
+                }
                 case StateTransition.GAME_START:
+                {
+                    if (currentState == SessionState.START)
                     {
-                        if (currentState == SessionState.START)
-                        {
-                            nextState = SessionState.SPYMASTER_BLUE;
-                        }
-                        break;
+                        nextState = SessionState.SPYMASTER_BLUE;
                     }
+                    break;
+                }
                 case StateTransition.TEAM_GUESSED_ALL_CARDS:
+                {
+                    if (currentState == SessionState.GUESS_RED)
                     {
-                        if (currentState == SessionState.GUESS_RED)
-                        {
-                            nextState = SessionState.RED_WON;
-                        }
-                        else if (currentState == SessionState.GUESS_BLUE)
-                        {
-                            nextState = SessionState.BLUE_WON;
-                        }
-                        break;
+                        nextState = SessionState.RED_WON;
                     }
+                    else if (currentState == SessionState.GUESS_BLUE)
+                    {
+                        nextState = SessionState.BLUE_WON;
+                    }
+                    break;
+                }
                 case StateTransition.TEAM_CHOSE_BLACK_CARD:
                 case StateTransition.TEAM_GUESSED_ALL_OPPONENT_CARDS:
+                {
+                    if(currentState == SessionState.GUESS_RED)
                     {
-                        if(currentState == SessionState.GUESS_RED)
-                        {
-                            nextState = SessionState.BLUE_WON;
-                        }
-                        else if(currentState == SessionState.GUESS_BLUE)
-                        {
-                            nextState = SessionState.RED_WON;
-                        }
-                        break;
+                        nextState = SessionState.BLUE_WON;
                     }
+                    else if(currentState == SessionState.GUESS_BLUE)
+                    {
+                        nextState = SessionState.RED_WON;
+                    }
+                    break;
+                }
+                case StateTransition.TEAM_RAN_OUT_OF_GUESSES:
+                {
+                    if(currentState == SessionState.GUESS_BLUE)
+                    {
+                        nextState = SessionState.SPYMASTER_RED;
+                    }
+                    else if(currentState == SessionState.GUESS_RED)
+                    {
+                        nextState = SessionState.SPYMASTER_BLUE;
+                    }
+                    break;
+                }
             }
 
             return nextState;

@@ -4,5 +4,6 @@
     {
         public string Word { get;set; }
         public int NoOfCards { get; set; }
+        public int NoOfGuessesRemaining { get; set; }
     }
 }
