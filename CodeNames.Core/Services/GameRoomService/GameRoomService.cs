@@ -12,6 +12,11 @@ namespace CodeNames.CodeNames.Core.Services.GameRoomService
             _gameRoomRepository = gameRoomRepository;
         }
 
+        public IEnumerable<GameRoom> GetGameRooms()
+        {
+            return _gameRoomRepository.GetAll();
+        }
+
         public GameRoom GetRoomByName(string name) =>
                     _gameRoomRepository.GetRoomByName(name);
 

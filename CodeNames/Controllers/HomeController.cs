@@ -1,28 +1,42 @@
-using CodeNames.CodeNames.Core.Services.GridGenerator;
-using CodeNames.Models;
-using CodeNames.Repository;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authorization;
 using System.Diagnostics;
 
 namespace CodeNames.Controllers
 {
+    [AllowAnonymous]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
-        private readonly IGridGenerator _gridGeneratorService;
+        private readonly IGameRoomService _gameRoomService;
 
         public HomeController(ILogger<HomeController> logger,
-            IGridGenerator gridGeneratorService)
+            IGameRoomService gameRoomService)
         {
             _logger = logger;
-            _gridGeneratorService = gridGeneratorService;
+            _gameRoomService = gameRoomService;
         }
 
         public IActionResult Index()
         {
-            _gridGeneratorService.Generate();
-            return View();
+            var viewModel = new IndexVM();
+
+            viewModel.GameRooms = _gameRoomService.GetGameRooms();
+
+            PopulateIndexVM(viewModel);
+
+            return View(viewModel);
+        }
+
+        private void PopulateIndexVM(IndexVM viewModel)
+        {
+            if (viewModel.GameRooms == null)
+                return;
+
+            foreach(var gameRoom in viewModel.GameRooms)
+            {
+                var invitationUrl = $"Game/Session/LiveSession?gameRoom={gameRoom.Name}&invitationCode={gameRoom.InvitationCode}";
+                viewModel.GameRoomsInvitaionLinks.Add(gameRoom.Id, invitationUrl);
+            }
         }
 
         public IActionResult Privacy()

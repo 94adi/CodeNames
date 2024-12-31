@@ -6,7 +6,7 @@
         Blue, 
         Black, 
         Neutral,
-        BackgrounBlue,
+        BackgroundBlue,
         BackgroundRed,
         InitialNeutralBackground,
         None

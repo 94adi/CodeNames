@@ -1,19 +1,5 @@
-using CodeNames;
-using CodeNames.CodeNames.Core.Services.GameRoomService;
-using CodeNames.CodeNames.Core.Services.GridGenerator;
-using CodeNames.Core.Services.LiveGameSessionService;
-using CodeNames.Core.Services.StateMachineService;
-using CodeNames.Core.Services.UserService;
-using CodeNames.DAL.DALAbstraction;
-using CodeNames.DAL.Repository;
-using CodeNames.Data;
-using CodeNames.Hubs;
-using CodeNames.Models;
-using CodeNames.Repository;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using NuGet.Protocol.Core.Types;
+using CodeNames.Core.Services.DatabaseService;
+using CodeNames.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,13 +11,34 @@ var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConne
 builder.Services.Configure<GameParametersOptions>(builder.Configuration.GetSection("GameVariables"));
 
 
-builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(dbConnectionString));
+builder.Services.AddDbContext<AppDbContext>(opt => 
+    opt.UseSqlServer(dbConnectionString));
 
-builder.Services.AddDefaultIdentity<IdentityUser>(
-    opt => opt.SignIn.RequireConfirmedAccount = true
-    ).AddEntityFrameworkStores<AppDbContext>();
+builder.Services
+    .AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders()
+    .AddDefaultUI();
 
-builder.Services.AddSignalR();
+builder.Services.Configure<IdentityOptions>(opt =>
+{
+    opt.Password.RequireDigit = false;
+    opt.Password.RequireUppercase = false;
+    opt.Password.RequireLowercase = false;
+    opt.Password.RequireNonAlphanumeric = false;
+    opt.Lockout.MaxFailedAccessAttempts = 3;
+    opt.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    opt.SignIn.RequireConfirmedEmail = false;
+});
+
+builder.Services.AddSignalR(
+    options =>
+    {
+        //FOR DEBUG
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(300);  
+        options.KeepAliveInterval = TimeSpan.FromSeconds(15);     
+    }
+    );
     //.AddAzureSignalR(connectionAzureSignalR);
 
 builder.Services.AddScoped<IGridGenerator, GridGenerator>();
@@ -42,8 +49,12 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILiveGameSessionRepository, LiveGameSessionRepository>();
 builder.Services.AddScoped<ILiveGameSessionService, LiveGameSessionService>();
 builder.Services.AddScoped<IStateMachineService, StateMachineService>();
+builder.Services.AddScoped<ISeedDataService, SeedDataService>();
+builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
+
+builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
@@ -63,6 +74,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+
 app.MapControllerRoute(
     name: "MyArea",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
@@ -71,10 +83,12 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+app.MapHub<StateMachineHub>("/hubs/stateMachineHub");
+
+//map razor pages for Identity Area
 app.MapRazorPages();
 
-app.MapHub<TestHub>("/hubs/testHub");
-app.MapHub<StateMachineHub>("/hubs/stateMachineHub");
-//app.MapHub<LiveSessionHub>("/hubs/liveSession");
+//fire and forget
+app.SeedData().GetAwaiter();
 
 app.Run();

@@ -1,14 +1,37 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "CodeNames Home";
+}
+@model CodeNames.Models.ViewModels.IndexVM
+
+<!--TO DO: Display Register/Log In button if user is not logged in-->
+
+
+@if(Model.GameRooms == null || Model.GameRooms.Count() == 0)
+{
+    <h1 class="display-4">No Rooms avaliable :(</h1>
+}
+else
+{
+    <h1 class="display-4 mb-5" style="text-align:center">Game Rooms</h1>
+    <div class="container">
+        <div class="row">
+            @foreach(var room in Model.GameRooms)
+            {
+                var invitationUrl = Model.GameRoomsInvitaionLinks[room.Id];
+
+            <div class="col-sm mb-5">
+                    <div class="card text-white bg-success mb-3" style="width: 18rem;">
+                        <div class="card-header">@room.Name</div>
+                    <div class="card-body">  
+                            <h6 class="card-text mb-2">Card subtitle</h6>
+                        <p class=""></p>
+                        <a href="@invitationUrl" class="btn btn-primary">Join Session</a>
+                    </div>
+                </div>
+            </div>
+            }
+        </div>
+    </div>
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
-
-<p>User online count: <span id="userCount"></span> </p>
-
-
 <script src="~/js/signalr.js"></script>
-<script src="~/js/testHub.js"></script>

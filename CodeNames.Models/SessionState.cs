@@ -5,7 +5,8 @@
         UNKNOWN,
         PENDING,
         INIT, 
-        START, 
+        START,
+        
         SPYMASTER_BLUE,
         GUESS_BLUE,
         SPYMASTER_RED,

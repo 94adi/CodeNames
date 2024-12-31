@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace CodeNames.Models;
 
-namespace CodeNames.Models
+public class SessionUser
 {
-    public class SessionUser
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string ConnectionId {  get; set; }
-        public bool IsSpymaster { get; set; } = false;
-    }
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string ConnectionId {  get; set; }
+    public bool IsSpymaster { get; set; } = false;
+    public Color TeamColor { get; set; }
+    public UserStatus UserStatus { get; set; }
 }
