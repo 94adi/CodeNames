@@ -1,6 +1,4 @@
-﻿using CodeNames.Models;
-
-namespace CodeNames.Hubs;
+﻿namespace CodeNames.Hubs;
 
 //TO DO:
 //Instead of using global static variable, change with a nosql persistance layer
@@ -213,6 +211,26 @@ public class StateMachineHub : Hub
         await Clients.User(userId).SendAsync("ChangeViewToSpymaster", spymasterSecret, teamColor);
 
         await Clients.AllExcept(player.ConnectionId).SendAsync("HideSpymasterButton", teamColor);
+
+        //verify if game is ready to start
+        //CONDITION: both teams need at least 2 members and a spymaster
+        bool isGameReady = true;
+        foreach(var item in currentSession.Teams)
+        {
+            bool teamReadyCondition = ((item.Players.Count() > 1) && (item.SpyMaster != null));
+            if(!teamReadyCondition)
+            {
+                isGameReady = false;
+                break;
+            }
+        }
+
+        if (isGameReady) 
+        {
+            //start game
+            await _StartGame(currentSession);
+        }
+
     }
 
     public async Task SpymasterSubmitGuess(string sessionId, string clue, string noCardsTarget)
@@ -453,24 +471,20 @@ public class StateMachineHub : Hub
         return;
     }
 
-    public async Task StartGame(string sessionId)
+    private async Task _StartGame(LiveSession currentSession)
     {
-        var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var sessionGuidId = new Guid(sessionId);
-
-        SessionUser spyMasterBlue = null;
-
-        LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
-
         if (currentSession == null || currentSession.SessionState != SessionState.START)
         {
             //send signal the game couldn't be started
             return;
         }
 
+        var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        SessionUser spyMasterBlue = null;
+
         //TO DO: additional conditions: 3 players/team with each team having a spymaster
         //get user and verify if it's active (idle users should not see/submit the button
-        if(currentSession.SessionState == SessionState.START)
+        if (currentSession.SessionState == SessionState.START)
         {
             currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, StateTransition.GAME_START);
             spyMasterBlue = currentSession.Teams.Where(t => t.Color == Color.Blue).FirstOrDefault()?.SpyMaster;

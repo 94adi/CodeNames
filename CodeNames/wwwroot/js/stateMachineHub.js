@@ -21,12 +21,6 @@ window.addEventListener('load', (event) => {
         clueSubmitFormHandler(formData)
     });
 
-    document.getElementById("btnStartGame").addEventListener("click", (e) => {
-        e.preventDefault();
-        console.log("clicked start game");
-        connection.invoke("StartGame", sessionId);
-    });
-
     guessButtons = document.querySelectorAll(".guess-btn");
 
     guessButtons.forEach((btn) => {
