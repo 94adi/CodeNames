@@ -5,10 +5,6 @@
 [Authorize]
 public class StateMachineHub : Hub
 {
-    //private LiveSession _currentSession;
-
-    private static IList<SessionUser> _queuedPlayers = new List<SessionUser>();
-
     private readonly IUserService _userService;
 
     private readonly ILiveGameSessionService _liveGameSessionService;
@@ -365,14 +361,17 @@ public class StateMachineHub : Hub
                     StateTransition.TEAM_CHOSE_BLACK_CARD);
 
             await Clients.All.SendAsync("DeactivateCards");
-            
-            await Clients.Users(teamIds).SendAsync("GameLost",
+
+            await _EndSession(currentSession);
+
+            await Clients.Users(teamIds).SendAsync("GameWon",
                 ColorHelper.OppositeTeamsDict[playerTeam.Color].ToString(),
                 ColorHelper.ColorToHexDict[ColorHelper.OppositeTeamsDict[playerTeam.Color]]);
             
-            await Clients.Users(otherTeamIds).SendAsync("GameWon", playerTeam.Color.ToString(),
-                ColorHelper.ColorToHexDict[playerTeam.Color]
-                );
+            await Clients.Users(otherTeamIds).SendAsync("GameLost", playerTeam.Color.ToString(),
+                ColorHelper.ColorToHexDict[playerTeam.Color]);
+
+            await Clients.All.SendAsync("OpenGameOverModal", playerTeam.Color.ToString());
         }
 
         if(guessedCard.Color == playerTeam.Color)
@@ -384,16 +383,20 @@ public class StateMachineHub : Hub
             
             if(currentSession.NumberOfTeamActiveCards[playerTeam.Color] == 0)
             {
-                await Clients.Users(otherTeamIds).SendAsync("GameLost", playerTeam.Color.ToString(), 
+                await Clients.Users(otherTeamIds).SendAsync("GameWon", playerTeam.Color.ToString(), 
                     ColorHelper.ColorToHexDict[playerTeam.Color]);
 
-                await Clients.Users(teamIds).SendAsync("GameWon",
+                await Clients.Users(teamIds).SendAsync("GameLost",
                     ColorHelper.OppositeTeamsDict[playerTeam.Color].ToString(),
                     ColorHelper.ColorToHexDict[ColorHelper.OppositeTeamsDict[playerTeam.Color]]);
+
+                await Clients.All.SendAsync("OpenGameOverModal", 
+                    ColorHelper.OppositeTeamsDict[playerTeam.Color].ToString());
 
                 currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState,
                     StateTransition.TEAM_GUESSED_ALL_CARDS);
 
+                await _EndSession(currentSession);
                 return;
             }
             //change turn to spymaster from opposite team
@@ -447,7 +450,19 @@ public class StateMachineHub : Hub
                 currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, 
                     StateTransition.TEAM_GUESSED_ALL_OPPONENT_CARDS);
 
-                //send signal to clients game is over
+                await Clients.Users(teamIds).SendAsync("GameLost", 
+                    playerTeam.Color.ToString(),
+                    ColorHelper.ColorToHexDict[playerTeam.Color]);
+
+                await Clients.Users(otherTeamIds).SendAsync("GameWon", 
+                    ColorHelper.OppositeTeamsDict[playerTeam.Color].ToString(),
+                    ColorHelper.ColorToHexDict[ColorHelper.OppositeTeamsDict[playerTeam.Color]]);
+
+                await Clients.All.SendAsync("OpenGameOverModal",
+                    ColorHelper.OppositeTeamsDict[playerTeam.Color].ToString());
+
+                await _EndSession(currentSession);
+
                 return;
             }
 
@@ -544,21 +559,21 @@ public class StateMachineHub : Hub
         await Clients.AllExcept(player.ConnectionId).SendAsync("HideSpymasterButton", player.TeamColor.ToString());
     }
 
+    private async Task _EndSession(LiveSession session)
+    {
+        GameSessionDictioary.RemoveSession(session);
+
+        GameSessionDictioary.RemoveUsersFromSession(session.SessionId.ToString());
+
+        var liveSession = _liveGameSessionService.GetByGameRoom(session.GameRoom.Id);
+
+        _liveGameSessionService.Remove(liveSession);
+
+        await Clients.All.SendAsync("EndSession");
+    }
+
     public override Task OnConnectedAsync()
     {
-        //var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        //if (userId == null)
-        //    return base.OnConnectedAsync();
-
-        //var connectionId = Context.ConnectionId;
-
-        //var userName = _userService.GetUserName(userId);
-
-        //var newUser = new SessionUser { Id = userId, Name = userName, ConnectionId = connectionId };
-
-        //_queuedPlayers.Add(newUser);
-
         return base.OnConnectedAsync();
     }
 
@@ -598,6 +613,10 @@ public class StateMachineHub : Hub
                 currentSession.SessionState = SessionState.FAILURE;
                 //send failure signal
                 Clients.All.SendAsync("GameFailureSignal").GetAwaiter().GetResult();
+
+                Clients.All.SendAsync("OpenSpymasterModal", activePlayer.TeamColor.ToString())
+                           .GetAwaiter()
+                           .GetResult();
             }
 
             else if (activePlayer != null)
@@ -617,7 +636,6 @@ public class StateMachineHub : Hub
                 
             }
         }
-        //tag user as inactive in UI
         return base.OnDisconnectedAsync(exception);
     }
 }

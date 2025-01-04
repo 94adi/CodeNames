@@ -1,4 +1,6 @@
-﻿namespace CodeNames;
+﻿using System.Collections.Generic;
+
+namespace CodeNames;
 
 public static class GameSessionDictioary
 {
@@ -25,7 +27,10 @@ public static class GameSessionDictioary
             if (_liveUsersSession.ContainsKey(key))
             {
                 var sessionId = new Guid(_liveUsersSession[key]);
-                return _sessionDictionary[sessionId];
+                if (_sessionDictionary.ContainsKey(sessionId))
+                {
+                    return _sessionDictionary[sessionId];
+                }
             }
 
             return null;
@@ -100,6 +105,20 @@ public static class GameSessionDictioary
             if (_liveUsersSession.ContainsKey(userKey))
             {
                 _liveUsersSession.Remove(userKey);
+            }
+        }
+    }
+
+    public static void RemoveUsersFromSession(string sessionId)
+    {
+        lock (_lock) 
+        {
+            var keysRemove = _liveUsersSession.Where(e => e.Value == sessionId)
+                                  .Select(e => e.Key)
+                                  .ToList();
+            foreach (var key in keysRemove)
+            {
+                _liveUsersSession.Remove(key);
             }
         }
     }

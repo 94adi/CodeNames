@@ -13,6 +13,18 @@
 }
 <h1 class="display-6 text-center" id="displayBanner"></h1>
 
+@await Component.InvokeAsync("Modal", new { 
+    id = "modalSpymasterLeft", 
+    title = "", 
+    body = "" 
+})
+
+@await Component.InvokeAsync("Modal", new { 
+    id = "modalGameOver", 
+    title = "", 
+    body = "" 
+})
+
 <input type="hidden" asp-for="@Model.LiveSession.SessionId" />
 
 <div class="container game-frame">
@@ -87,15 +99,7 @@
                         <button class="btn btn-primary" type="submit">Submit</button>
                     </div>
                 </div>
-            </form>
-           
-@*             <div id="startGameDiv" class="row justify-content-center ">
-                <!--d-none-->
-                <div class="col-3">
-                    <button type="button" id="btnStartGame" class="btn btn-dark mt-1 mb-4">Start Game</button>
-                </div>       
-            </div> *@
-
+            </form>         
         </div>
         
         <div class="col-lg-2 right-panel bg-secondary bg-gradient">
@@ -129,6 +133,6 @@
 </div>
 
 
+<script type="module" src="~/js/stateMachineHub.js"></script>
 <script src="~/js/signalr.min.js"></script>
-<script src="~/js/stateMachineHub.js"></script>
 <script src="~/lib/jquery/dist/jquery.min.js"></script>

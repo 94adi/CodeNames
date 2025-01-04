@@ -1,4 +1,6 @@
-﻿var connection = new signalR.HubConnectionBuilder()
+﻿import { openModal } from './modal.js';
+
+var connection = new signalR.HubConnectionBuilder()
     .withUrl("/hubs/stateMachineHub")
     .withAutomaticReconnect([0, 1000, 5000, null])
     .build();
@@ -100,12 +102,6 @@ connection.on("ChangeViewToSpymaster", (cardsToReveal, teamColor) =>
     toggleSpymasterButton(teamColor, false);
 });
 
-//connection.on("RemoveSpymasterButton", (teamColor) => {
-//    let id = "#" + teamColor + "SpymasterBtn";
-//    console.log(id);
-//    $(id).hide();
-//});
-
 connection.on("ReceivedSpymasterClue", (clue) => {
     let word = clue.word;
     let noOfCards = clue.noOfCards;
@@ -149,27 +145,36 @@ connection.on("DeactivateCards", () => {
 connection.on("GameLost", () => {
     $('#displayBanner').text('');
     $('#displayBanner').text('Your team lost the game :(');
-    alert('Your team lost the game :(');
 });
 
 connection.on("GameWon", () => {
     $('#displayBanner').text('');
     $('#displayBanner').text('Your team won the game :)');
-    alert('Your team won the game :)');
 });
 
 connection.on("GameFailureSignal", () => {
     $('#displayBanner').text('');
     $('#displayBanner').text('GAME FAILURE');
-    alert('Game ended because one of the spymaster left the game :(');
+    //alert('Game ended because one of the spymaster left the game :(');
 })
+
+connection.on("EndSession", () => {
+    //connection.stop();
+});
 
 connection.on("CardGuess", (row, col, color) => {
 
     let cardId = "cardAt-" + row + "-" + col;
     document.getElementById(cardId).style.backgroundColor = color;
     //$(cardId).css('bakcground-color', color);
+});
 
+connection.on("OpenSpymasterModal", (color) => {
+    openSpymasterModal(color);
+});
+
+connection.on("OpenGameOverModal", (color) => {
+    openGameOverModal(color);
 });
 
 
@@ -279,4 +284,18 @@ function addSpymasterHandlerLogic(btnId, btnColor)
 
         connection.invoke("TransformUserToSpymaster", sessionId, btnColor);
     });
+}
+
+function openSpymasterModal(spymasterColor) {
+    let title = spymasterColor + " Spymaster left";
+
+    openModal("modalSpymasterLeft",
+        title,
+        "The game had to end as a result of that action");
+}
+
+function openGameOverModal(teamWon) {
+    openModal("modalGameOver",
+    "Game over",
+    teamWon + " won the game!",)
 }
