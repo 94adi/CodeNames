@@ -5,5 +5,7 @@ namespace CodeNames.Repository
     public interface IGameRoomRepository : IRepository<GameRoom>
     {
         public GameRoom GetRoomByName(string name);
+
+        public void Update(GameRoom room);
     }
 }

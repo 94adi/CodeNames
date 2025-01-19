@@ -1,5 +1,6 @@
 ﻿using CodeNames.Data;
 using CodeNames.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace CodeNames.Repository
 {
@@ -16,6 +17,14 @@ namespace CodeNames.Repository
         {
             var result = base.GetFirstOrDefault(gr => gr.Name.Equals(name));
             return result;
+        }
+
+        public void Update(GameRoom room)
+        {
+            _db.Attach(room);
+            _db.Entry(room).State = EntityState.Modified;
+            _db.SaveChanges();
+
         }
     }
 }

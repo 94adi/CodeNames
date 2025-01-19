@@ -11,5 +11,7 @@ namespace CodeNames.CodeNames.Core.Services.GameRoomService
         GameRoom GetRoomByName(string name);
 
         IEnumerable<GameRoom> GetGameRooms();
+
+        void InvalidateInvitationCode(int gameRoomId, Guid code);
     }
 }

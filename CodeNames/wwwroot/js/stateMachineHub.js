@@ -41,6 +41,14 @@ window.addEventListener('load', (event) => {
         });
     });
 
+    $("#endGuess").click(() => {
+        $("#endGuessDiv").addClass('d-none');
+        connection.invoke("PlayerSubmitEndGuess", sessionId);
+    });
+});
+
+connection.on("HideEndGuessButton", () => {
+    $("#endGuessDiv").addClass('d-none');
 });
 
 connection.on("InvalidSession", () => {
@@ -97,6 +105,10 @@ connection.on("ChangeViewToSpymaster", (cardsToReveal, teamColor) =>
     cardsToRevealArray.forEach((v, i) => {
         let cardId = "#" + v.CardId;
         $(cardId).css("background-color", v.Color);
+        if (v.Color.toLowerCase() == "black") {
+            let contentElement = $(`${cardId} h5`);
+            contentElement.css("color", "white");         
+        }
     });
 
     toggleSpymasterButton(teamColor, false);
@@ -130,10 +142,12 @@ connection.on("HideSpymasterGuessForm", () => {
 connection.on("ActivateCards", () => {
     guessButtons.forEach((btn) => {
         btn.classList.remove('disabled');
-        //btn.removeClass('disabled');
-        console.log("enabled buttons");
     })
 });
+
+connection.on("ShowEndGuessButton", () => {
+    $("#endGuessDiv").removeClass('d-none');
+})
 
 connection.on("DeactivateCards", () => {
     guessButtons.forEach((btn) => {
@@ -166,7 +180,10 @@ connection.on("CardGuess", (row, col, color) => {
 
     let cardId = "cardAt-" + row + "-" + col;
     document.getElementById(cardId).style.backgroundColor = color;
-    //$(cardId).css('bakcground-color', color);
+    let guessBtn = $(`${cardId} a`);
+    if (guessBtn.length) {
+        guessBtn.remove();
+    }
 });
 
 connection.on("OpenSpymasterModal", (color) => {
