@@ -1,6 +1,6 @@
 ﻿using CodeNames.Models;
 
-namespace CodeNames.Services;
+namespace CodeNames.Services.Seed;
 
 public class SeedDataService : ISeedDataService
 {
@@ -33,7 +33,7 @@ public class SeedDataService : ISeedDataService
                 Email = "admin@admin.com",
                 EmailConfirmed = true
             }
-   
+
         }, isAdmin: true);
 
         await _AddSeedUsers(new List<IdentityUser>
@@ -76,7 +76,7 @@ public class SeedDataService : ISeedDataService
 
     private void _AddGameRooms(IEnumerable<GameRoom> gameRooms)
     {
-        if(gameRooms != null && gameRooms.Count() > 0)
+        if (gameRooms != null && gameRooms.Count() > 0)
         {
             foreach (var gameRoom in gameRooms)
             {

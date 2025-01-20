@@ -1,27 +1,29 @@
-﻿namespace CodeNames.Hubs;
+﻿using CodeNames.Services.PlayerSubmitStrategy.Factory;
+using CodeNames.Services.Session;
 
-//TO DO:
-//Instead of using global static variable, change with a nosql persistance layer
+namespace CodeNames.Hubs;
+
 [Authorize]
 public class StateMachineHub : Hub
 {
     private readonly IUserService _userService;
-
     private readonly ILiveGameSessionService _liveGameSessionService;
-
     private readonly IGameRoomService _gameRoomService;
-
     private readonly IStateMachineService _stateMachineService;
+    private readonly ISessionService _sessionService;
+    private readonly IPlayerSubmitFactory _playerSubmitFactory;
 
     public StateMachineHub(IUserService userService,
         ILiveGameSessionService liveGameSessionService,
         IStateMachineService stateMachineService,
-        IGameRoomService gameRoomService)
+        IGameRoomService gameRoomService,
+        IPlayerSubmitFactory playerSubmitFactory)
     {
         _userService = userService;
         _liveGameSessionService = liveGameSessionService;
         _stateMachineService = stateMachineService;
         _gameRoomService = gameRoomService;
+        _playerSubmitFactory = playerSubmitFactory;
     }
     public async Task ReceiveSessionId(string sessionId)
     {
@@ -337,94 +339,38 @@ public class StateMachineHub : Hub
 
     public async Task PlayerSubmitGuess(string sessionId, string row, string col)
     {
-        //Important: A player from the current team needs to click on EACH card, not submit multple ones at once!
-
         var sessionGuidId = new Guid(sessionId);    
         var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-
         LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
 
-        if(currentSession == null)
+        var sessionData = _sessionService.ExtractSessionData(currentSession, userId, row, col);
+
+        var guessedCard = sessionData.GuessedCard;
+
+        bool isBlueTurn = sessionData.PlayerTeam.Color == Color.Blue && currentSession.SessionState == SessionState.GUESS_BLUE;
+        bool isRedTurn = sessionData.PlayerTeam.Color == Color.Red && currentSession.SessionState == SessionState.GUESS_RED;
+
+        bool earlyReturnCondition = ((!isBlueTurn && !isRedTurn) || (guessedCard == null));
+
+        if (earlyReturnCondition)
         {
-            return;
-        }
-
-        SessionUser player = null;
-        Team playerTeam = null;
-        Team otherTeam = null;
-        foreach (var team in currentSession.Teams)
-        {
-            var currentPlayer = team.Players.Where(p => p.Id == userId).FirstOrDefault();
-            if (currentPlayer != null)
-            {
-                player = currentPlayer;
-                playerTeam = team;
-            }
-            else
-            {
-                otherTeam = team;
-            }
-        }
-
-        if(player == null || playerTeam == null)
-        {
-            return;
-        }
-
-        bool isBlueTurn = playerTeam.Color == Color.Blue && currentSession.SessionState == SessionState.GUESS_BLUE;
-        bool isRedTurn = playerTeam.Color == Color.Red && currentSession.SessionState == SessionState.GUESS_RED;
-
-        if (!isBlueTurn && !isRedTurn)
-        {
-            return;
-        }
-         
-        var teamIds = playerTeam.Players.Select(p => p.Id).ToArray();
-        var otherTeamIds = otherTeam.Players.Select(p => p.Id).ToArray();
-
-        int rowInt = Int32.Parse(row);
-        int colInt = Int32.Parse(col);
-
-        var guessedCard = currentSession.Grid.Cards
-            .Where(c => c.Row == rowInt 
-            && c.Column == colInt)
-            .FirstOrDefault();
-
-        if(guessedCard == null)
-        {
-            //invalid card; error
             return;
         }
 
         guessedCard.IsRevealed = true;
         guessedCard.ColorHex = ColorHelper.ColorToHexDict[guessedCard.Color];
 
-        if (guessedCard.Color == Color.Black)
+        var submissionType = _sessionService.CalculatePlayerSubmission(guessedCard, sessionData);
+
+        var submissionHandler = _playerSubmitFactory.Create(submissionType);
+
+        await submissionHandler.PlayerSubmit(currentSession, sessionData);
+
+        if (guessedCard.Color == sessionData.PlayerTeam.Color)
         {
-            currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, 
-                    StateTransition.TEAM_CHOSE_BLACK_CARD);
-
-            await Clients.All.SendAsync("DeactivateCards");
-
-            await _EndSession(currentSession);
-
-            await Clients.Users(teamIds).SendAsync("GameLost",
-                playerTeam.Color.ToString(),
-                ColorHelper.ColorToHexDict[playerTeam.Color]);
-            
-            await Clients.Users(otherTeamIds).SendAsync("GameWon", 
-                ColorHelper.OppositeTeamsDict[playerTeam.Color].ToString(),
-                ColorHelper.ColorToHexDict[ColorHelper.OppositeTeamsDict[playerTeam.Color]]);
-
-            await Clients.All.SendAsync("OpenGameOverModal", 
-                ColorHelper.OppositeTeamsDict[playerTeam.Color].ToString());
-        }
-
-        if(guessedCard.Color == playerTeam.Color)
-        {
-            --currentSession.NumberOfTeamActiveCards[playerTeam.Color];
+            --currentSession.NumberOfTeamActiveCards[sessionData.PlayerTeam.Color];
             --currentSession.Clue.NoOfGuessesRemaining;
-            await Clients.All.SendAsync("CardGuess", rowInt, colInt, ColorHelper.ColorToHexDict[guessedCard.Color]);
+            await Clients.All.SendAsync("CardGuess", sessionData.Row, sessionData.Col, ColorHelper.ColorToHexDict[guessedCard.Color]);
             
             
             if(currentSession.NumberOfTeamActiveCards[playerTeam.Color] == 0)
@@ -460,6 +406,8 @@ public class StateMachineHub : Hub
 
                 await Clients.All.SendAsync("DeactivateCards");
 
+                await Clients.All.SendAsync("HideEndGuessButton");
+
                 await Clients.User(otherTeam.SpyMaster.Id).SendAsync("SpyMasterMode", backgroundColor);
 
                 return;
@@ -474,7 +422,7 @@ public class StateMachineHub : Hub
             await Clients.All.SendAsync("CardGuess", rowInt, colInt, ColorHelper.ColorToHexDict[guessedCard.Color]);        
         }
 
-        //if guessedCard == OtherTeamColor case
+        
         if(guessedCard.Color == ColorHelper.OppositeTeamsDict[playerTeam.Color])
         {
             var cardsLeft = currentSession
@@ -594,17 +542,8 @@ public class StateMachineHub : Hub
 
     private async Task _EndSession(LiveSession session)
     {
-        GameSessionDictioary.RemoveSession(session);
-
-        GameSessionDictioary.RemoveUsersFromSession(session.SessionId.ToString());
-
-        var liveSession = _liveGameSessionService.GetByGameRoom(session.GameRoom.Id);
-
-        _gameRoomService.InvalidateInvitationCode(session.GameRoom.Id, session.GameRoom.InvitationCode);
-
-        _liveGameSessionService.Remove(liveSession);
-
-        await Clients.All.SendAsync("EndSession");
+        //call service here
+        
     }
 
     private async Task _PlayerEndGuess(
