@@ -34,7 +34,13 @@
             <ul class="list-group red-team-ul bg-info bg-gradient" id="red-team-ul">
                 <li style="background-color:#ff8080" class="list-group-item text-center"></li>
             </ul>
-            
+
+            <div class="row">
+                <div class="col-12 d-flex d-none justify-content-center" id="endGuessDiv">
+                    <a href="#" class="btn btn-primary" id="endGuess">End Guess</a>
+                </div>
+            </div>
+
             @if (!Model.HideJoinRedTeamButton)
             {
                 <div class="@joinRedTeamBtnClass">
