@@ -180,10 +180,10 @@ connection.on("CardGuess", (row, col, color) => {
 
     let cardId = "cardAt-" + row + "-" + col;
     document.getElementById(cardId).style.backgroundColor = color;
-    let guessBtn = $(`${cardId} a`);
-    if (guessBtn.length) {
-        guessBtn.remove();
-    }
+    let guessBtn = $(`#${cardId} a`);
+    console.log(guessBtn);
+    guessBtn.remove();
+    guessBtn.hide();
 });
 
 connection.on("OpenSpymasterModal", (color) => {

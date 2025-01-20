@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace CodeNames;
 
@@ -14,8 +15,8 @@ public static class GameSessionDictioary
     static GameSessionDictioary()
     {
         _lock = new object();
-        _liveUsersSession = new Dictionary<string, string>();
-        _sessionDictionary = new Dictionary<Guid, LiveSession>();
+        _liveUsersSession = new ConcurrentDictionary<string, string>();
+        _sessionDictionary = new ConcurrentDictionary<Guid, LiveSession>();
     }
 
     public static LiveSession? GetUserSession(string userId, string connectionId)

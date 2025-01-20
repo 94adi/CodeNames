@@ -1,4 +1,4 @@
-﻿namespace CodeNames.Services
+﻿namespace CodeNames.Services.Seed
 {
     public interface ISeedDataService
     {

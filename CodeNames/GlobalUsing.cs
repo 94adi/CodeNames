@@ -19,3 +19,4 @@ global using Microsoft.AspNetCore.Identity;
 global using Microsoft.EntityFrameworkCore;
 global using CodeNames.BuildingBlocks;
 global using Microsoft.AspNetCore.Authorization;
+global using CodeNames.Services;
