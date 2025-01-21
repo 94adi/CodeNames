@@ -2,5 +2,5 @@
 
 public interface IPlayerSubmitFactory
 {
-    IPlayerSubmitStrategy Create(PlayerCardSubmit playerCardSubmit);
+    IPlayerSubmitHandler Create(PlayerCardSubmit playerCardSubmit);
 }

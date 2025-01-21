@@ -7,4 +7,10 @@ public interface ISessionService
     void EndSession(LiveSession session);
 
     PlayerCardSubmit CalculatePlayerSubmission(Card card, SessionData sessionData);
+
+    Task PlayerEndGuess(LiveSession session, Team playerTeam, Team otherTeam);
+
+    Task StartGame(LiveSession currentSession);
+
+    Task TransformReturningUserToSpymaster(string sessionId, SessionUser player, string userId);
 }

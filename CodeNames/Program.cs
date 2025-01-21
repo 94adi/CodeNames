@@ -1,9 +1,3 @@
-using CodeNames.Core.Services.DatabaseService;
-using CodeNames.Services.PlayerSubmitStrategy;
-using CodeNames.Services.PlayerSubmitStrategy.Factory;
-using CodeNames.Services.Seed;
-using CodeNames.Services.Session;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -55,8 +49,12 @@ builder.Services.AddScoped<IStateMachineService, StateMachineService>();
 builder.Services.AddScoped<ISeedDataService, SeedDataService>();
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IGameStateService, GameStateService>();
 builder.Services.AddScoped<IPlayerSubmitFactory, PlayerSubmitFactory>();
-builder.Services.AddScoped<PlayerSubmitBlackCard>();
+builder.Services.AddScoped<PlayerSubmitBlackCardHandler>();
+builder.Services.AddScoped<PlayerSubmitNeutralCardHandler>();
+builder.Services.AddScoped<PlayerSubmitTeamCardHandler>();
+builder.Services.AddScoped<PlayerSubmitOppositeTeamCardHandler>();
 
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
