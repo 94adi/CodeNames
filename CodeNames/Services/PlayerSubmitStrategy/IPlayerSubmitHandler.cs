@@ -1,6 +1,6 @@
 ﻿namespace CodeNames.Services.PlayerSubmitStrategy;
 
-public interface IPlayerSubmitStrategy
+public interface IPlayerSubmitHandler
 {
     Task PlayerSubmit(LiveSession session, SessionData sessionData);
 }

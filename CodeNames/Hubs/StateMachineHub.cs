@@ -1,30 +1,22 @@
-﻿using CodeNames.Services.PlayerSubmitStrategy.Factory;
-using CodeNames.Services.Session;
-
-namespace CodeNames.Hubs;
+﻿namespace CodeNames.Hubs;
 
 [Authorize]
 public class StateMachineHub : Hub
 {
     private readonly IUserService _userService;
-    private readonly ILiveGameSessionService _liveGameSessionService;
-    private readonly IGameRoomService _gameRoomService;
     private readonly IStateMachineService _stateMachineService;
     private readonly ISessionService _sessionService;
     private readonly IPlayerSubmitFactory _playerSubmitFactory;
 
     public StateMachineHub(IUserService userService,
-        ILiveGameSessionService liveGameSessionService,
         IStateMachineService stateMachineService,
-        IGameRoomService gameRoomService,
         IPlayerSubmitFactory playerSubmitFactory)
     {
         _userService = userService;
-        _liveGameSessionService = liveGameSessionService;
         _stateMachineService = stateMachineService;
-        _gameRoomService = gameRoomService;
         _playerSubmitFactory = playerSubmitFactory;
     }
+
     public async Task ReceiveSessionId(string sessionId)
     {
         var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -82,7 +74,7 @@ public class StateMachineHub : Hub
             }
             else if (player.IsSpymaster && currentSession.SessionState == SessionState.START)
             {
-                await this._TransformReturningUserToSpymaster(sessionId, player);
+                await _sessionService.TransformReturningUserToSpymaster(sessionId, player, userId);
             }
 
         }
@@ -230,7 +222,7 @@ public class StateMachineHub : Hub
         if (isGameReady) 
         {
             //start game
-            await _StartGame(currentSession);
+            await _sessionService.StartGame(currentSession);
         }
 
     }
@@ -334,7 +326,7 @@ public class StateMachineHub : Hub
             return;
         }
 
-        await _PlayerEndGuess(currentSession, playerTeam, otherTeam);
+        await _sessionService.PlayerEndGuess(currentSession, playerTeam, otherTeam);
     }
 
     public async Task PlayerSubmitGuess(string sessionId, string row, string col)
@@ -366,205 +358,7 @@ public class StateMachineHub : Hub
 
         await submissionHandler.PlayerSubmit(currentSession, sessionData);
 
-        if (guessedCard.Color == sessionData.PlayerTeam.Color)
-        {
-            --currentSession.NumberOfTeamActiveCards[sessionData.PlayerTeam.Color];
-            --currentSession.Clue.NoOfGuessesRemaining;
-            await Clients.All.SendAsync("CardGuess", sessionData.Row, sessionData.Col, ColorHelper.ColorToHexDict[guessedCard.Color]);
-            
-            
-            if(currentSession.NumberOfTeamActiveCards[playerTeam.Color] == 0)
-            {
-                await Clients.Users(teamIds).SendAsync("GameWon", playerTeam.Color.ToString(), 
-                    ColorHelper.ColorToHexDict[playerTeam.Color]);
-
-                await Clients.Users(otherTeamIds).SendAsync("GameLost",
-                    ColorHelper.OppositeTeamsDict[playerTeam.Color].ToString(),
-                    ColorHelper.ColorToHexDict[ColorHelper.OppositeTeamsDict[playerTeam.Color]]);
-
-                await Clients.All.SendAsync("OpenGameOverModal", 
-                    playerTeam.Color.ToString());
-
-                currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState,
-                    StateTransition.TEAM_GUESSED_ALL_CARDS);
-
-                await _EndSession(currentSession);
-                return;
-            }
-            //change turn to spymaster from opposite team
-            //logic to decide if the user is allowed to guess another card or swith turn to opposite team spymaster
-            if (currentSession.Clue.NoOfGuessesRemaining == 0)
-            {
-                currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState,
-                        StateTransition.TEAM_RAN_OUT_OF_GUESSES);
-
-                string backgroundColor = ColorHelper.OppositeTeamsBackgroundColorDict[playerTeam.Color];
-
-                await Clients.AllExcept(otherTeam.SpyMaster.ConnectionId).SendAsync("AwaitingSpymasterState", backgroundColor);
-
-                await Clients.User(playerTeam.SpyMaster.Id).SendAsync("HideSpymasterGuessForm");
-
-                await Clients.All.SendAsync("DeactivateCards");
-
-                await Clients.All.SendAsync("HideEndGuessButton");
-
-                await Clients.User(otherTeam.SpyMaster.Id).SendAsync("SpyMasterMode", backgroundColor);
-
-                return;
-            }
-
-        }
-
-        if(guessedCard.Color == Color.Neutral)
-        {
-            await _PlayerEndGuess(currentSession, playerTeam, otherTeam);
-
-            await Clients.All.SendAsync("CardGuess", rowInt, colInt, ColorHelper.ColorToHexDict[guessedCard.Color]);        
-        }
-
-        
-        if(guessedCard.Color == ColorHelper.OppositeTeamsDict[playerTeam.Color])
-        {
-            var cardsLeft = currentSession
-                .NumberOfTeamActiveCards[ColorHelper.OppositeTeamsDict[playerTeam.Color]]--;
-
-            if(cardsLeft == 0)
-            {
-                currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, 
-                    StateTransition.TEAM_GUESSED_ALL_OPPONENT_CARDS);
-
-                await Clients.Users(teamIds).SendAsync("GameLost", 
-                    playerTeam.Color.ToString(),
-                    ColorHelper.ColorToHexDict[playerTeam.Color]);
-
-                await Clients.Users(otherTeamIds).SendAsync("GameWon", 
-                    ColorHelper.OppositeTeamsDict[playerTeam.Color].ToString(),
-                    ColorHelper.ColorToHexDict[ColorHelper.OppositeTeamsDict[playerTeam.Color]]);
-
-                await Clients.All.SendAsync("OpenGameOverModal",
-                    ColorHelper.OppositeTeamsDict[playerTeam.Color].ToString());
-
-                await _EndSession(currentSession);
-
-                return;
-            }
-
-            currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, StateTransition.NONE);
-
-            var cardColor = ColorHelper.ColorToHexDict[ColorHelper.OppositeTeamsDict[playerTeam.Color]];
-
-            await Clients.All.SendAsync("CardGuess", rowInt, colInt, cardColor);
-
-            string backgroundColor = ColorHelper.OppositeTeamsBackgroundColorDict[playerTeam.Color];
-
-            await Clients.AllExcept(otherTeam.SpyMaster.ConnectionId).SendAsync("AwaitingSpymasterState", backgroundColor);
-
-            await Clients.All.SendAsync("DeactivateCards");
-
-            await Clients.User(playerTeam.SpyMaster.Id).SendAsync("HideSpymasterGuessForm");
-
-            await Clients.User(otherTeam.SpyMaster.Id).SendAsync("SpyMasterMode", backgroundColor);
-        }
-
         return;
-    }
-
-    private async Task _StartGame(LiveSession currentSession)
-    {
-        if (currentSession == null || currentSession.SessionState != SessionState.START)
-        {
-            //send signal the game couldn't be started
-            return;
-        }
-
-        var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        SessionUser spyMasterBlue = null;
-
-        //TO DO: additional conditions: 3 players/team with each team having a spymaster
-        //get user and verify if it's active (idle users should not see/submit the button
-        if (currentSession.SessionState == SessionState.START)
-        {
-            currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, StateTransition.GAME_START);
-            spyMasterBlue = currentSession.Teams.Where(t => t.Color == Color.Blue).FirstOrDefault()?.SpyMaster;
-        }
-
-        if (spyMasterBlue == null)
-        {
-            return;
-        }
-        //change UI so that only blue spymaster can give guess
-        //change for ALL except for Blue Spymaster
-        string backgroundColor = ColorHelper.ColorToHexDict[Color.BackgroundBlue];
-        await Clients.AllExcept(spyMasterBlue.ConnectionId).SendAsync("AwaitingSpymasterState", backgroundColor);
-
-        await Clients.User(spyMasterBlue.Id).SendAsync("SpyMasterMode", backgroundColor);
-    }
-
-    private async Task _TransformReturningUserToSpymaster(string sessionId, SessionUser player)
-    {
-        if ((player == null) || (!player.IsSpymaster))
-        {
-            return;
-        }
-
-        var sessionGuidId = new Guid(sessionId);
-
-        LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
-
-        if (currentSession == null || currentSession.SessionState != SessionState.START)
-        {
-            //send signal to user couldn't be added
-            return;
-        }
-
-        var team = currentSession.Teams.Where(t => t.Color == player.TeamColor).FirstOrDefault();
-
-        if (team == null || (team.SpyMaster.Id != player.Id))
-        {
-            return;
-        }
-
-        var spymasterSecret = currentSession.Grid.Cards.Where(c => c.Color != Color.Neutral)
-                .Select(c => new RevealedCard
-                {
-                    CardId = c.CardId,
-                    Color = c.Color.ToString(),
-                    Content = c.Content
-                }).ToArray().ToJson();
-
-        var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        //the spymaster can see the color of all cards + enter data in the clue form
-        await Clients.User(userId).SendAsync("ChangeViewToSpymaster", spymasterSecret, player.TeamColor.ToString());
-
-        await Clients.AllExcept(player.ConnectionId).SendAsync("HideSpymasterButton", player.TeamColor.ToString());
-    }
-
-    private async Task _EndSession(LiveSession session)
-    {
-        //call service here
-        
-    }
-
-    private async Task _PlayerEndGuess(
-        LiveSession currentSession,
-        Team playerTeam,
-        Team otherTeam)
-    {
-        //TO DO: verify if you're in the right SessionState to end the guess
-        currentSession.SessionState = _stateMachineService.NextState(currentSession.SessionState, StateTransition.NONE);
-
-        string backgroundColor = ColorHelper.OppositeTeamsBackgroundColorDict[playerTeam.Color];
-
-        await Clients.AllExcept(otherTeam.SpyMaster.ConnectionId).SendAsync("AwaitingSpymasterState", backgroundColor);
-
-        await Clients.User(playerTeam.SpyMaster.Id).SendAsync("HideSpymasterGuessForm");
-
-        await Clients.All.SendAsync("DeactivateCards");
-
-        await Clients.All.SendAsync("HideEndGuessButton");
-
-        await Clients.User(otherTeam.SpyMaster.Id).SendAsync("SpyMasterMode", backgroundColor);
     }
 
     public override Task OnConnectedAsync()
@@ -613,7 +407,7 @@ public class StateMachineHub : Hub
                            .GetAwaiter()
                            .GetResult();
 
-                _EndSession(currentSession).GetAwaiter().GetResult();
+                _sessionService.EndSession(currentSession);
             }
 
             else if (activePlayer != null)

@@ -1,14 +1,12 @@
-﻿using CodeNames.Services.Session;
+﻿namespace CodeNames.Services.PlayerSubmitStrategy;
 
-namespace CodeNames.Services.PlayerSubmitStrategy;
-
-public class PlayerSubmitBlackCard : IPlayerSubmitStrategy
+public class PlayerSubmitBlackCardHandler : IPlayerSubmitHandler
 {
     private readonly IHubContext<StateMachineHub> _hubContext;
     private readonly IStateMachineService _stateMachineService;
     private readonly ISessionService _sessionService;
 
-    public PlayerSubmitBlackCard(IHubContext<StateMachineHub> hubContext,
+    public PlayerSubmitBlackCardHandler(IHubContext<StateMachineHub> hubContext,
         IStateMachineService stateMachineService,
         ISessionService sessionService)
     {
