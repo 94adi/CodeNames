@@ -38,15 +38,15 @@ public class SessionService : ISessionService
 
     public void EndSession(LiveSession session)
     {
-        GameSessionDictioary.RemoveSession(session);
-
-        GameSessionDictioary.RemoveUsersFromSession(session.SessionId.ToString());
-
         var liveSession = _liveGameSessionService.GetByGameRoom(session.GameRoom.Id);
 
         _gameRoomService.InvalidateInvitationCode(session.GameRoom.Id, session.GameRoom.InvitationCode);
 
         _liveGameSessionService.Remove(liveSession);
+
+        GameSessionDictioary.RemoveSession(session);
+
+        GameSessionDictioary.RemoveUsersFromSession(session.SessionId.ToString());
     }
 
     public SessionData ExtractSessionData(LiveSession session, string userId, string row, string col)

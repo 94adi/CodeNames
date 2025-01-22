@@ -10,11 +10,13 @@ public class StateMachineHub : Hub
 
     public StateMachineHub(IUserService userService,
         IStateMachineService stateMachineService,
-        IPlayerSubmitFactory playerSubmitFactory)
+        IPlayerSubmitFactory playerSubmitFactory,
+        ISessionService sessionService)
     {
         _userService = userService;
         _stateMachineService = stateMachineService;
         _playerSubmitFactory = playerSubmitFactory;
+        _sessionService = sessionService;
     }
 
     public async Task ReceiveSessionId(string sessionId)
@@ -331,34 +333,41 @@ public class StateMachineHub : Hub
 
     public async Task PlayerSubmitGuess(string sessionId, string row, string col)
     {
-        var sessionGuidId = new Guid(sessionId);    
-        var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
-
-        var sessionData = _sessionService.ExtractSessionData(currentSession, userId, row, col);
-
-        var guessedCard = sessionData.GuessedCard;
-
-        bool isBlueTurn = sessionData.PlayerTeam.Color == Color.Blue && currentSession.SessionState == SessionState.GUESS_BLUE;
-        bool isRedTurn = sessionData.PlayerTeam.Color == Color.Red && currentSession.SessionState == SessionState.GUESS_RED;
-
-        bool earlyReturnCondition = ((!isBlueTurn && !isRedTurn) || (guessedCard == null));
-
-        if (earlyReturnCondition)
+        try
         {
+            var sessionGuidId = new Guid(sessionId);
+            var userId = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            LiveSession currentSession = GameSessionDictioary.GetSession(sessionGuidId);
+
+            var sessionData = _sessionService.ExtractSessionData(currentSession, userId, row, col);
+
+            var guessedCard = sessionData.GuessedCard;
+
+            bool isBlueTurn = sessionData.PlayerTeam.Color == Color.Blue && currentSession.SessionState == SessionState.GUESS_BLUE;
+            bool isRedTurn = sessionData.PlayerTeam.Color == Color.Red && currentSession.SessionState == SessionState.GUESS_RED;
+
+            bool earlyReturnCondition = ((!isBlueTurn && !isRedTurn) || (guessedCard == null));
+
+            if (earlyReturnCondition)
+            {
+                return;
+            }
+
+            guessedCard.IsRevealed = true;
+            guessedCard.ColorHex = ColorHelper.ColorToHexDict[guessedCard.Color];
+
+            var submissionType = _sessionService.CalculatePlayerSubmission(guessedCard, sessionData);
+
+            var submissionHandler = _playerSubmitFactory.Create(submissionType);
+
+            await submissionHandler.PlayerSubmit(currentSession, sessionData);
+
             return;
         }
-
-        guessedCard.IsRevealed = true;
-        guessedCard.ColorHex = ColorHelper.ColorToHexDict[guessedCard.Color];
-
-        var submissionType = _sessionService.CalculatePlayerSubmission(guessedCard, sessionData);
-
-        var submissionHandler = _playerSubmitFactory.Create(submissionType);
-
-        await submissionHandler.PlayerSubmit(currentSession, sessionData);
-
-        return;
+        catch(Exception e)
+        {
+            //send error UI message
+        }
     }
 
     public override Task OnConnectedAsync()
@@ -400,7 +409,7 @@ public class StateMachineHub : Hub
                 GameSessionHelper.IsGameOngoing(currentSession))
             {
                 currentSession.SessionState = SessionState.FAILURE;
-                //send failure signal
+
                 Clients.All.SendAsync("GameFailureSignal").GetAwaiter().GetResult();
 
                 Clients.All.SendAsync("OpenSpymasterModal", activePlayer.TeamColor.ToString())

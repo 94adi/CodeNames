@@ -3,17 +3,12 @@ using CodeNames.Data;
 using CodeNames.Models;
 using CodeNames.Repository;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace CodeNames.DAL.Repository
 {
     public class LiveGameSessionRepository : Repository<LiveGameSession>, ILiveGameSessionRepository
     {
-
         private readonly AppDbContext _db;
 
         public LiveGameSessionRepository(AppDbContext db) : base(db)
