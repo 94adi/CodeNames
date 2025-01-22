@@ -36,8 +36,7 @@ builder.Services.AddSignalR(
         options.KeepAliveInterval = TimeSpan.FromSeconds(15);     
     }
     );
-    //.AddAzureSignalR(connectionAzureSignalR);
-
+//.AddAzureSignalR(connectionAzureSignalR);
 builder.Services.AddScoped<IGridGenerator, GridGenerator>();
 builder.Services.AddScoped<IGameRoomRepository, GameRoomRepository>();
 builder.Services.AddScoped<IGameRoomService, GameRoomService>();

@@ -98,7 +98,6 @@ public class SessionController : Controller
     [HttpPost]
     public IActionResult Clue()
     {
-        string test = "tGgesgegse";
         return Ok();
     }
 

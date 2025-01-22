@@ -29,6 +29,6 @@ PlayerSubmitGuess
 
 -if card color == TeamColor: decrement number of active cards, update UI
 
-if card color == Neutral:
+if card color == Neutral: round over, game switches to opposite color spymaster
 
-if card == oposite TeamColor: 
+if card == opositeTeamColor: round over, game switches to opposite color spymaste OR game over, opposite team won

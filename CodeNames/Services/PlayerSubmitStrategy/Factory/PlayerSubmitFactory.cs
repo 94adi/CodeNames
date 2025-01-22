@@ -10,20 +10,16 @@ public class PlayerSubmitFactory : IPlayerSubmitFactory
     }
     public IPlayerSubmitHandler Create(PlayerCardSubmit playerCardSubmit)
     {
-        using var scope = _serviceProvider.CreateScope();
-
-        var scopedServiceProvider = scope.ServiceProvider;
-
         return playerCardSubmit switch
         {
-            PlayerCardSubmit.Black => 
-                scopedServiceProvider.GetRequiredService<PlayerSubmitBlackCardHandler>(),
-            PlayerCardSubmit.Neutral => 
-                scopedServiceProvider.GetRequiredService<PlayerSubmitNeutralCardHandler>(),
+            PlayerCardSubmit.Black =>
+                _serviceProvider.GetRequiredService<PlayerSubmitBlackCardHandler>(),
+            PlayerCardSubmit.Neutral =>
+                _serviceProvider.GetRequiredService<PlayerSubmitNeutralCardHandler>(),
             PlayerCardSubmit.Team =>
-                scopedServiceProvider.GetRequiredService<PlayerSubmitTeamCardHandler>(),
+                _serviceProvider.GetRequiredService<PlayerSubmitTeamCardHandler>(),
             PlayerCardSubmit.OppositeTeam =>
-                scopedServiceProvider.GetRequiredService<PlayerSubmitOppositeTeamCardHandler>(),
+                _serviceProvider.GetRequiredService<PlayerSubmitOppositeTeamCardHandler>(),
             _ => throw new Exception("Invalid input")
         };
 
