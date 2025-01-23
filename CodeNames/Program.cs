@@ -1,3 +1,7 @@
+using CodeNames.Services.Email;
+using Microsoft.AspNetCore.Identity;
+using System.Configuration;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -6,6 +10,8 @@ builder.Services.AddControllersWithViews();
 var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.Configure<GameParametersOptions>(builder.Configuration.GetSection("GameVariables"));
+
+builder.Services.Configure<EmailConfig>(builder.Configuration.GetSection("EmailConfig"));
 
 
 builder.Services.AddDbContext<AppDbContext>(opt => 
@@ -19,13 +25,14 @@ builder.Services
 
 builder.Services.Configure<IdentityOptions>(opt =>
 {
-    opt.Password.RequireDigit = false;
-    opt.Password.RequireUppercase = false;
-    opt.Password.RequireLowercase = false;
+    opt.Password.RequireDigit = true;
+    opt.Password.RequireUppercase = true;
+    opt.Password.RequireLowercase = true;
     opt.Password.RequireNonAlphanumeric = false;
+    opt.Password.RequiredLength = 10;
     opt.Lockout.MaxFailedAccessAttempts = 3;
-    opt.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-    opt.SignIn.RequireConfirmedEmail = false;
+    opt.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    opt.SignIn.RequireConfirmedEmail = true;
 });
 
 builder.Services.AddSignalR(
@@ -54,6 +61,7 @@ builder.Services.AddScoped<PlayerSubmitBlackCardHandler>();
 builder.Services.AddScoped<PlayerSubmitNeutralCardHandler>();
 builder.Services.AddScoped<PlayerSubmitTeamCardHandler>();
 builder.Services.AddScoped<PlayerSubmitOppositeTeamCardHandler>();
+builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, MyEmailSender>();
 
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
