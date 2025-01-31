@@ -26,3 +26,5 @@ global using CodeNames.Core.Services.DatabaseService;
 global using CodeNames.Services.PlayerSubmitStrategy;
 global using CodeNames.Services.PlayerSubmitStrategy.Factory;
 global using CodeNames.Services.Seed;
+global using CodeNames.Extensions;
+global using CodeNames.Services.Email;

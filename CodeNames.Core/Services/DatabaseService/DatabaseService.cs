@@ -14,6 +14,12 @@ public class DatabaseService : IDatabaseService
 
     public void DeleteDatabase() => _context.Database.EnsureDeleted();
 
-    public void RunMigrations() => _context.Database.Migrate();
+    public async Task RunMigrationsAsync()
+    {
+        if (_context.Database.GetPendingMigrations().Count() > 0)
+        {
+            await _context.Database.MigrateAsync();
+        }
+    }
 
 }

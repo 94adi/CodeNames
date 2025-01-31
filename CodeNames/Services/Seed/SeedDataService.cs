@@ -99,7 +99,7 @@ public class SeedDataService : ISeedDataService
     }
 
     private async Task _AddSeedUsers(IEnumerable<IdentityUser> users,
-        string password = "$upper@dm1n",
+        string password = "ges#53Fa4gs44gsGGerfgeag444",
         bool isAdmin = false)
     {
         foreach (var user in users)

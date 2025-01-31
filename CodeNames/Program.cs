@@ -1,84 +1,34 @@
-using CodeNames.Services.Email;
-using Microsoft.AspNetCore.Identity;
-using System.Configuration;
-
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.RegisterAzureConfigs();
 
-var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.RegisterServices();
 
-builder.Services.Configure<GameParametersOptions>(builder.Configuration.GetSection("GameVariables"));
+bool conversionResult = bool.TryParse(builder.Configuration["DatabaseSettings:DeleteOnStartup"],
+    out bool deleteOnStartup);
 
-builder.Services.Configure<EmailConfig>(builder.Configuration.GetSection("EmailConfig"));
-
-
-builder.Services.AddDbContext<AppDbContext>(opt => 
-    opt.UseSqlServer(dbConnectionString));
-
-builder.Services
-    .AddIdentity<IdentityUser, IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders()
-    .AddDefaultUI();
-
-builder.Services.Configure<IdentityOptions>(opt =>
-{
-    opt.Password.RequireDigit = true;
-    opt.Password.RequireUppercase = true;
-    opt.Password.RequireLowercase = true;
-    opt.Password.RequireNonAlphanumeric = false;
-    opt.Password.RequiredLength = 10;
-    opt.Lockout.MaxFailedAccessAttempts = 3;
-    opt.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-    opt.SignIn.RequireConfirmedEmail = true;
-});
-
-builder.Services.AddSignalR(
-    options =>
-    {
-        //FOR DEBUG
-        options.ClientTimeoutInterval = TimeSpan.FromSeconds(300);  
-        options.KeepAliveInterval = TimeSpan.FromSeconds(15);     
-    }
-    );
-//.AddAzureSignalR(connectionAzureSignalR);
-builder.Services.AddScoped<IGridGenerator, GridGenerator>();
-builder.Services.AddScoped<IGameRoomRepository, GameRoomRepository>();
-builder.Services.AddScoped<IGameRoomService, GameRoomService>();
-builder.Services.AddScoped<IUserRepository,  UserRepository>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<ILiveGameSessionRepository, LiveGameSessionRepository>();
-builder.Services.AddScoped<ILiveGameSessionService, LiveGameSessionService>();
-builder.Services.AddScoped<IStateMachineService, StateMachineService>();
-builder.Services.AddScoped<ISeedDataService, SeedDataService>();
-builder.Services.AddScoped<IDatabaseService, DatabaseService>();
-builder.Services.AddScoped<ISessionService, SessionService>();
-builder.Services.AddScoped<IGameStateService, GameStateService>();
-builder.Services.AddScoped<IPlayerSubmitFactory, PlayerSubmitFactory>();
-builder.Services.AddScoped<PlayerSubmitBlackCardHandler>();
-builder.Services.AddScoped<PlayerSubmitNeutralCardHandler>();
-builder.Services.AddScoped<PlayerSubmitTeamCardHandler>();
-builder.Services.AddScoped<PlayerSubmitOppositeTeamCardHandler>();
-builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, MyEmailSender>();
-
-builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
-
-builder.Services.AddRazorPages();
+bool databaseDeletionCondition = conversionResult && deleteOnStartup;
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+if (databaseDeletionCondition)
+{
+    app.DeleteDatabase();
+}
+
+app.ApplyMigrations().GetAwaiter().GetResult();
+app.SeedData().GetAwaiter().GetResult();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+app.UseCors("AllowAll");
 
 app.UseRouting();
 
@@ -96,10 +46,6 @@ app.MapControllerRoute(
 
 app.MapHub<StateMachineHub>("/hubs/stateMachineHub");
 
-//map razor pages for Identity Area
 app.MapRazorPages();
-
-//fire and forget
-app.SeedData().GetAwaiter();
 
 app.Run();

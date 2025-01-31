@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /CodeNames/wwwroot/lib/microsoft/signalr
 /CodeNames/CodeNames notes.txt
+/CodeNames/CodeNames.db
+/CodeNames/CodeNames.db-shm
+/CodeNames/CodeNames.db-wal

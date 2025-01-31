@@ -2,7 +2,7 @@
 
 public interface IDatabaseService
 {
-    void RunMigrations();
+    Task RunMigrationsAsync();
 
     void DeleteDatabase();
 }
