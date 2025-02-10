@@ -43,8 +43,10 @@ public class StateMachineHub : Hub
         }
 
         if (currentSession.SessionState == SessionState.PENDING)
+        {
             currentSession.SessionState = SessionState.START;
-
+        }
+            
         var userName = _userService.GetUserName(userId);
 
         var newUser = new SessionUser { 

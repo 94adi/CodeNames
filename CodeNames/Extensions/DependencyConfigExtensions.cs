@@ -15,6 +15,8 @@ public static class DependencyConfigExtensions
             .AddDefaultTokenProviders()
             .AddDefaultUI();
 
+        appBuilder.Services.AddAuthentication();
+
         appBuilder.Services.Configure<IdentityOptions>(opt =>
         {
             opt.Password.RequireDigit = true;
@@ -25,19 +27,35 @@ public static class DependencyConfigExtensions
             opt.Lockout.MaxFailedAccessAttempts = 3;
             opt.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             opt.SignIn.RequireConfirmedEmail = true;
+            opt.SignIn.RequireConfirmedAccount = true;
+        });
+
+        appBuilder.Services.AddControllersWithViews(options =>
+        {
+            options.Filters.Add(new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter());
+        });
+
+        appBuilder.Services.ConfigureApplicationCookie(options =>
+        {
+            options.LoginPath = "/Home/Welcome";
+            options.AccessDeniedPath = "/Home/Welcome";
         });
 
         string signalRConnectionString = appBuilder.Configuration["SignalRConfig:ConnectionString"];
 
-        appBuilder.Services.AddSignalR(opt =>
+        var signalRBuilder = appBuilder.Services.AddSignalR(opt =>
         {
             opt.ClientTimeoutInterval = TimeSpan.FromSeconds(300);
             opt.KeepAliveInterval = TimeSpan.FromSeconds(15);
-        })
-            .AddAzureSignalR(opt =>
+        });
+
+        if (!appBuilder.Environment.IsDevelopment())
+        {
+            signalRBuilder.AddAzureSignalR(opt =>
             {
                 opt.ConnectionString = signalRConnectionString;
             });
+        }
 
         appBuilder.Services.AddScoped<IGridGenerator, GridGenerator>();
         appBuilder.Services.AddScoped<IGameRoomRepository, GameRoomRepository>();
@@ -57,8 +75,6 @@ public static class DependencyConfigExtensions
         appBuilder.Services.AddScoped<PlayerSubmitTeamCardHandler>();
         appBuilder.Services.AddScoped<PlayerSubmitOppositeTeamCardHandler>();
         appBuilder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, MyEmailSender>();
-
-        appBuilder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
         appBuilder.Services.AddRazorPages();
     }

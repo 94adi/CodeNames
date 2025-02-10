@@ -1,4 +1,5 @@
 ﻿using CodeNames.Models;
+using Microsoft.Extensions.Options;
 
 namespace CodeNames.Services.Seed;
 
@@ -7,14 +8,20 @@ public class SeedDataService : ISeedDataService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly IGameRoomRepository _gameRoomRepo;
+    private readonly UserPasswordSecrets _userPasswordSecrets;
+    private readonly SeedDataConfig _seedDataConfig;
 
     public SeedDataService(RoleManager<IdentityRole> roleManager,
         UserManager<IdentityUser> userManager,
-        IGameRoomRepository gameRoomRepo)
+        IGameRoomRepository gameRoomRepo,
+        IOptions<UserPasswordSecrets> userPasswordSecretsOptions,
+        IOptions<SeedDataConfig> seedDataConfigOptions)
     {
         _roleManager = roleManager;
         _userManager = userManager;
         _gameRoomRepo = gameRoomRepo;
+        _userPasswordSecrets = userPasswordSecretsOptions.Value;
+        _seedDataConfig = seedDataConfigOptions.Value;
     }
 
     public async Task Seed()
@@ -34,41 +41,39 @@ public class SeedDataService : ISeedDataService
                 EmailConfirmed = true
             }
 
-        }, isAdmin: true);
+        }, 
+        password:_userPasswordSecrets.Admin, 
+        isAdmin: true);
+
+        var testUsers = GenerateTestUsersData();
+
+        await _AddSeedUsers(testUsers,
+        password:_userPasswordSecrets.User, 
+        isAdmin: false);
 
         await _AddSeedUsers(new List<IdentityUser>
         {
             new IdentityUser
             {
-                UserName = "user@user.com",
-                Email = "user@user.com",
-                EmailConfirmed = true
-            },
-            new IdentityUser
-            {
-                UserName = "test1@test.com",
-                Email = "test1@test.com",
-                EmailConfirmed = true
-            },
-            new IdentityUser
-            {
-                UserName = "test2@test.com",
-                Email = "test2@test.com",
-                EmailConfirmed = true
-            },
-            new IdentityUser
-            {
-                UserName = "test3@test.com",
-                Email = "test3@test.com",
+                UserName = "guest@guest.com",
+                Email = "guest@guest.com",
                 EmailConfirmed = true
             }
 
-        }, isAdmin: false);
+        },
+        password: "gU3$tP@@$w0rd",
+        isAdmin: false);
 
         _AddGameRooms(new List<GameRoom> { new GameRoom
         {
             Name = "Adi's room",
             InvitationCode =  Guid.NewGuid(),
+            MaxNoPlayers = 20
+        },
+        new GameRoom
+        {
+            Name = "Test room",
+            InvitationCode = Guid.NewGuid(),
             MaxNoPlayers = 20
         }
         });
@@ -99,7 +104,7 @@ public class SeedDataService : ISeedDataService
     }
 
     private async Task _AddSeedUsers(IEnumerable<IdentityUser> users,
-        string password = "ges#53Fa4gs44gsGGerfgeag444",
+        string password,
         bool isAdmin = false)
     {
         foreach (var user in users)
@@ -120,5 +125,22 @@ public class SeedDataService : ISeedDataService
                 }
             }
         }
+    }
+
+    private List<IdentityUser> GenerateTestUsersData()
+    {
+        var testUsers = new List<IdentityUser>();
+
+        for (int i = 1; i <= _seedDataConfig.NumberOfTestUsers; i++)
+        {
+            testUsers.Add(new IdentityUser
+            {
+                UserName = $"test{i}@test.com",
+                Email = $"test{i}@test.com",
+                EmailConfirmed = true
+            });
+        }
+
+        return testUsers;
     }
 }

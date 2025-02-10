@@ -1,0 +1,11 @@
+﻿@{
+    ViewData["Title"] = "Welcome";
+}
+<div class="container d-flex flex-column align-items-center justify-content-center vh-20 text-center">
+    <h1 class="mb-3">Welcome to CodeNames</h1>
+    <p class="lead">Please create an account or log in using an existing one if you wish to join a session and play the game</p>
+    <div class="mt-4 d-flex gap-3">
+        <a class="btn btn-outline-primary btn-lg px-4" id="login" asp-area="Identity" asp-page="/Account/Login">Login</a>
+        <a class="btn btn-outline-success btn-lg px-4" id="register" asp-area="Identity" asp-page="/Account/Register">Register</a>
+    </div>
+</div>

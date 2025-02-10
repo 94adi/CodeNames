@@ -1,6 +1,7 @@
 ﻿using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using CodeNames.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeNames.Extensions;
 
@@ -18,6 +19,8 @@ public static class ConfigurationExtensions
         var emailConfigApiKey = secretClient.GetSecret(SecretNames.EmailConfig_ApiKey);
         var emailConfigFromEmail = secretClient.GetSecret(SecretNames.EmailConfig_FromEmail);
         var emailConfigApiUrl = secretClient.GetSecret(SecretNames.EmailConfig_ApiUrl);
+        var adminPassword = secretClient.GetSecret(SecretNames.AdminUserPassword);
+        var userPassword = secretClient.GetSecret(SecretNames.RegularUserPassword);
 
         appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -25,10 +28,16 @@ public static class ConfigurationExtensions
             { "EmailConfig:ApiKey", emailConfigApiKey.Value.Value},
             { "EmailConfig:FromEmail", emailConfigFromEmail.Value.Value},
             { "EmailConfig:ApiUrl", emailConfigApiUrl.Value.Value},
+            { "UserPasswordSecrets:Admin", adminPassword.Value.Value },
+            { "UserPasswordSecrets:User", userPassword.Value.Value }
         });
 
         appBuilder.Services.Configure<EmailConfig>(appBuilder.Configuration.GetSection("EmailConfig"));
 
         appBuilder.Services.Configure<GameParametersOptions>(appBuilder.Configuration.GetSection("GameVariables"));
+
+        appBuilder.Services.Configure<UserPasswordSecrets>(appBuilder.Configuration.GetSection("UserPasswordSecrets"));
+
+        appBuilder.Services.Configure<SeedDataConfig>(appBuilder.Configuration.GetSection("SeedDataConfig"));
     }
 }
