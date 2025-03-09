@@ -1,8 +1,10 @@
 var builder = WebApplication.CreateBuilder(args);
 
-builder.RegisterAzureConfigs();
+builder.Services.RegisterConfigs(builder);
 
 builder.RegisterServices();
+
+builder.WebHost.UseStaticWebAssets();
 
 bool conversionResult = bool.TryParse(builder.Configuration["DatabaseSettings:DeleteOnStartup"],
     out bool deleteOnStartup);
@@ -19,13 +21,13 @@ if (databaseDeletionCondition)
 app.ApplyMigrations().GetAwaiter().GetResult();
 app.SeedData().GetAwaiter().GetResult();
 
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsAzureEnv())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseCors("AllowAll");

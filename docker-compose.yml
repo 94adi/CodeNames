@@ -1,0 +1,6 @@
+services:
+  codenames:
+    image: ${DOCKER_REGISTRY-}codenames
+    build:
+      context: .
+      dockerfile: CodeNames/Dockerfile

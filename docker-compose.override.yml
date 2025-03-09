@@ -1,0 +1,15 @@
+services:
+  codenames:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://0.0.0.0:8100
+      - ASPNETCORE_HTTP_PORTS=8100
+      - EmailConfig__FromEmail=${EMAIL_CONFIG_FROM_EMAIL}
+      - EmailConfig__ApiUrl=${EMAIL_CONFIG_API_URL}
+      - EmailConfig__ApiKey=${EMAIL_CONFIG_API_KEY}
+      - UserPasswordSecrets__Admin=${USERPASSWORDSECRETS_ADMIN}
+      - UserPasswordSecrets__User=${USERPASSWORDSECRETS_USER}
+    ports:
+      - "8100:8100"
+    env_file:
+      - .env
