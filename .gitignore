@@ -366,3 +366,4 @@ FodyWeavers.xsd
 /CodeNames/CodeNames.db
 /CodeNames/CodeNames.db-shm
 /CodeNames/CodeNames.db-wal
+/.env

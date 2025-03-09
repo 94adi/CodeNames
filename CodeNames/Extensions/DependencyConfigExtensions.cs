@@ -41,16 +41,16 @@ public static class DependencyConfigExtensions
             options.AccessDeniedPath = "/Home/Welcome";
         });
 
-        string signalRConnectionString = appBuilder.Configuration["SignalRConfig:ConnectionString"];
-
         var signalRBuilder = appBuilder.Services.AddSignalR(opt =>
         {
             opt.ClientTimeoutInterval = TimeSpan.FromSeconds(300);
             opt.KeepAliveInterval = TimeSpan.FromSeconds(15);
         });
 
-        if (!appBuilder.Environment.IsDevelopment())
+        if (appBuilder.Environment.IsAzureEnv())
         {
+            string signalRConnectionString = appBuilder.Configuration["SignalRConfig:ConnectionString"];
+
             signalRBuilder.AddAzureSignalR(opt =>
             {
                 opt.ConnectionString = signalRConnectionString;
